@@ -1,5 +1,5 @@
 # --- CMake and Build Directories ---
-build/
+pgm*/
 .cache/
 CMakeUserPresets.json
 

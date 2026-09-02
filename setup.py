@@ -12,11 +12,15 @@ Description:
     <Add Description>
 """
 
+import sys
 import os
 import subprocess
+import shutil
 from setuptools import setup
 from setuptools.command.build import build
 from setuptools.command.editable_wheel import editable_wheel
+
+BUILD_DIRS=["src/pgm", "src/pgm_project.egg-info"]
 
 def run_pgm_build():
     setup_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +42,17 @@ class InstallPGMEditable(editable_wheel):
     def run(self):
         run_pgm_build()
         super().run()
+
+if any(arg in sys.argv for arg in ["install", "develop", "editable", "build_ext", "bdist_wheel"]):
+    print("[setup.py] Auto-purging stale build directories to avoid CMake conflicts...")
+    for directory in BUILD_DIRS:
+        if os.path.exists(directory):
+            try:
+                shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
+                print(f"  ✓ Cleaned: {path}")
+            except Exception as e:
+                print(f"  ✗ Failed to clean {path}: {e}")
+
 
 # This tells setuptools to use your custom logic during installation
 setup(

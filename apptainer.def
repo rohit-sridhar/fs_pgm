@@ -1,0 +1,58 @@
+Bootstrap: docker
+From: python:3.12-slim-bookworm
+
+%arguments
+    # Replaces ARG from Docker
+    DEBIAN_FRONTEND=noninteractive
+
+%environment
+    # Replaces ENV from Docker
+    export TZ=Etc/UTC
+    
+    # Optional: If you want to automatically land in this directory on execution
+    export PWD=/data/hmm_modeling/fs_pgm
+    
+    # Do this bc pip install editable will only do user builds inside container 
+    export PATH="/root/.local/bin:$HOME/.local/bin:$PATH"
+
+%post
+    # Enforce non-interactive frontend during setup execution
+    export DEBIAN_FRONTEND={{ DEBIAN_FRONTEND }}
+
+    # Create directories
+    mkdir -p /root/.tmp
+    mkdir -p /data/hmm_modeling/fs_pgm
+
+    # Add compiler tools and multi-arch support
+    dpkg --add-architecture i386
+    apt-get update -y && apt-get upgrade -y
+    
+    # Install development toolchain & architecture libraries
+    apt-get install -y \
+        build-essential gcc-multilib g++-multilib \
+        git jq vim autoconf gdb curl \
+        libx11-dev:i386 libx11-dev libc6-dev-i386 libc6-dev
+
+    # Install core prerequisites
+    apt-get install -y --no-install-recommends \
+        software-properties-common cmake \
+        gpg-agent
+
+    # Clean up apt caches to minimize container size
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    # Install Github Copilot CLI
+    curl -fsSL https://gh.io/copilot-install | bash
+
+    # Note on Pip installation: 
+    # Your original line: 'pip install --no-cache-dir -e -t /data/hmm_modeling/fs_pgm'
+    # Apptainer filesystems are read-only at runtime by default. 
+    # If you intend to compile code or install python editable requirements into 
+    # /data/hmm_modeling/fs_pgm, you must bind your local development host path 
+    # to this folder when running the image.
+
+%runscript
+    # Replaces CMD ["bash"] from Docker
+    exec bash
+

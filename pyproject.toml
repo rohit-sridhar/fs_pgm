@@ -1,0 +1,16 @@
+[build-system]
+requires = ["nanobind>=2.4.0", "setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pgm_project"
+version = "0.1.0"
+dependencies = [] # Add your project dependencies here if needed
+
+[project.scripts]
+run-pgm = "main:main"  # Format is: command_name = "file_name:function_name"
+
+[tool.setuptools.packages.find]
+where = ["src"]       # Search in the repository root
+include = ["pgm*"]   # ONLY include the 'pgm' package, ignoring everything else
+

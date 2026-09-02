@@ -1,0 +1,4 @@
+/data/hmm_modeling/fs_pgm/src/pgm/CMakeFiles/hmm.dir
+/data/hmm_modeling/fs_pgm/src/pgm/CMakeFiles/nanobind-static.dir
+/data/hmm_modeling/fs_pgm/src/pgm/CMakeFiles/edit_cache.dir
+/data/hmm_modeling/fs_pgm/src/pgm/CMakeFiles/rebuild_cache.dir

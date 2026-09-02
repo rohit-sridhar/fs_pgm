@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared  -o pgm.cpython-312-x86_64-linux-gnu.so CMakeFiles/pgm.dir/src/hmm.cpp.o  libnanobind-static.a 

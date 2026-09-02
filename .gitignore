@@ -1,0 +1,22 @@
+# --- CMake and Build Directories ---
+build/
+.cache/
+CMakeUserPresets.json
+
+# --- Python Compiled Files and Caches ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.egglike/
+.eggs/
+*.egg-info/
+
+# --- Compiled Native C++ Binaries (Python Modules) ---
+# This prevents checking in the platform-specific compiled engine
+*.so
+*.pyd
+*.dll
+*.dylib
+

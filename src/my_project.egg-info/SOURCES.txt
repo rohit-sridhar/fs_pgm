@@ -1,8 +1,0 @@
-pyproject.toml
-setup.py
-src/main.py
-src/my_project.egg-info/PKG-INFO
-src/my_project.egg-info/SOURCES.txt
-src/my_project.egg-info/dependency_links.txt
-src/my_project.egg-info/entry_points.txt
-src/my_project.egg-info/top_level.txt

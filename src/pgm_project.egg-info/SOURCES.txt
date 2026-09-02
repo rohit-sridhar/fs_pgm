@@ -1,7 +1,0 @@
-pyproject.toml
-setup.py
-src/pgm_project.egg-info/PKG-INFO
-src/pgm_project.egg-info/SOURCES.txt
-src/pgm_project.egg-info/dependency_links.txt
-src/pgm_project.egg-info/entry_points.txt
-src/pgm_project.egg-info/top_level.txt

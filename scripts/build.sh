@@ -13,7 +13,7 @@ set -euo pipefail
 mkdir -p src/pgm
 cd src/pgm
 
-# 2. Configure the project, passing the nanobind path you found in Step 1
+# 2. Configure the project, passing the nanobind path
 cmake ../.. -Dnanobind_DIR="/usr/local/lib/python3.12/site-packages/nanobind/cmake"
 
 # 3. Compile the code

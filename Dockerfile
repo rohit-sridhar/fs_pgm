@@ -18,6 +18,9 @@ RUN apt-get install -y --no-install-recommends \
     software-properties-common cmake \
     gpg-agent
 
+# Install other libraries
+RUN apt-get install -y libeigen3-dev
+
 # Install python libraries
 RUN pip install --no-cache-dir -e -t /data/hmm_modeling/fs_pgm
 

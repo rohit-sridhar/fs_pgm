@@ -14,8 +14,15 @@ Description:
 
 from pgm.hmm import HMM
 
+import numpy as np
+
 def main():
-    print("Hello from python")
+    obs = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+    hmm = HMM(4)
+    hmm.initialize_model()
+
+    hmm.baum_welch(obs)
 
 if __name__ == "__main__":
     main()

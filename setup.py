@@ -43,16 +43,15 @@ class InstallPGMEditable(editable_wheel):
         run_pgm_build()
         super().run()
 
-if any(arg in sys.argv for arg in ["install", "develop", "editable", "build_ext", "bdist_wheel"]):
+if any(arg in sys.argv for arg in ["wheel", "install", "develop", "editable", "editable_wheel", "build_ext", "bdist_wheel"]):
     print("[setup.py] Auto-purging stale build directories to avoid CMake conflicts...")
     for directory in BUILD_DIRS:
         if os.path.exists(directory):
             try:
-                shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
-                print(f"  ✓ Cleaned: {path}")
+                shutil.rmtree(directory)
+                print(f"  ✓ Cleaned: {directory}")
             except Exception as e:
-                print(f"  ✗ Failed to clean {path}: {e}")
-
+                print(f"  ✗ Failed to clean {directory}: {e}")
 
 # This tells setuptools to use your custom logic during installation
 setup(
@@ -62,6 +61,3 @@ setup(
     }
 )
 
-
-if __name__ == "__main__":
-    pass

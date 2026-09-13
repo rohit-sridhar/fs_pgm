@@ -8,9 +8,14 @@ RUN mkdir /root/.tmp
 # add compiler tools and multi arch support
 RUN dpkg --add-architecture i386
 RUN apt-get update -y && apt-get upgrade -y
+
 RUN apt-get install -y \
-    build-essential gcc-multilib g++-multilib \
-    git jq vim autoconf gdb curl \
+    build-essential gcc-multilib g++-multilib
+
+RUN apt-get install -y \
+    git jq vim autoconf gdb curl tree
+
+RUN apt-get install -y \
     libx11-dev:i386 libx11-dev libc6-dev-i386 libc6-dev
 
 # Install core prerequisites

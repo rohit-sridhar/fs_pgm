@@ -21,6 +21,7 @@ from setuptools.command.build import build
 from setuptools.command.editable_wheel import editable_wheel
 
 BUILD_DIRS=["src/pgm", "src/pgm_project.egg-info"]
+# BUILD_DIRS=["build/"]
 
 def run_pgm_build():
     setup_dir = os.path.dirname(os.path.abspath(__file__))

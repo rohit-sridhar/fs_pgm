@@ -1,10 +1,6 @@
 #pragma once
 
-// #include <nanobind/nanobind.h>
-// #include <nanobind/eigen/dense.h>
 #include <Eigen/Dense>
-
-// namespace nb = nanobind;
 
 class Gaussian {
 public:

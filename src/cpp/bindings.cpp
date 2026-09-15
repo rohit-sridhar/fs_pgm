@@ -16,7 +16,7 @@
 
 namespace nb = nanobind;
 
-NB_MODULE(pgm, m) {
+NB_MODULE(_pgm, m) {
     nb::module_ utils_m = m.def_submodule("utils", "utils module containing helper standalone functions and helper classes.");
     nb::module_ models_m = m.def_submodule("models", "models module containing pgm model classes.");
     nb::module_ cpp_logger_m = utils_m.def_submodule("cpp_logger", "cpp logger module. encapsulates cpp logger functions.");

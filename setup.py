@@ -20,8 +20,19 @@ from setuptools import setup
 from setuptools.command.build import build
 from setuptools.command.editable_wheel import editable_wheel
 
-BUILD_DIRS=["src/pgm", "src/pgm_project.egg-info"]
-# BUILD_DIRS=["build/"]
+# pre set up housekeeping. clean and recreate build dir
+build_dir = os.path.join(os.path.dirname(__file__), "pgm")
+
+if any(arg in sys.argv for arg in ["wheel", "install", "develop", "editable", "editable_wheel", "build_ext", "bdist_wheel"]):
+    print("[setup.py] Auto-purging stale build directories to avoid CMake conflicts...")
+    if os.path.exists(build_dir):
+        try:
+            shutil.rmtree(build_dir)
+            print(f"  ✓ Cleaned: {build_dir}")
+        except Exception as e:
+            print(f"  ✗ Failed to clean {build_dir}: {e}")
+    os.makedirs(build_dir, exist_ok=True)
+
 
 def run_pgm_build():
     setup_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,16 +54,6 @@ class InstallPGMEditable(editable_wheel):
     def run(self):
         run_pgm_build()
         super().run()
-
-if any(arg in sys.argv for arg in ["wheel", "install", "develop", "editable", "editable_wheel", "build_ext", "bdist_wheel"]):
-    print("[setup.py] Auto-purging stale build directories to avoid CMake conflicts...")
-    for directory in BUILD_DIRS:
-        if os.path.exists(directory):
-            try:
-                shutil.rmtree(directory)
-                print(f"  ✓ Cleaned: {directory}")
-            except Exception as e:
-                print(f"  ✗ Failed to clean {directory}: {e}")
 
 # This tells setuptools to use your custom logic during installation
 setup(

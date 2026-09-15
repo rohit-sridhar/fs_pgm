@@ -11,7 +11,7 @@ dependencies = ["numpy>=2.0.0,<3.0.0"] # Add your project dependencies here if n
 run-pgm = "main:main"  # Format is: command_name = "file_name:function_name"
 
 [tool.setuptools.packages.find]
-where = ["src"]       # Search in the repository root
+where = ["."]       # Search in the repository root
 include = ["pgm*"]   # ONLY include the 'pgm' package, ignoring everything else
-namespaces = false   # ignore namespace logic
+# namespaces = false   # ignore namespace logic
 

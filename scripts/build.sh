@@ -10,11 +10,11 @@ set -euo pipefail
 #
 
 # 1. Create a separate directory for build artifacts to keep your project clean
-mkdir -p src/pgm
-cd src/pgm
+# mkdir -p pgm
+cd pgm
 
 # 2. Configure the project, passing the nanobind path
-cmake ../.. -Dnanobind_DIR="/usr/local/lib/python3.12/site-packages/nanobind/cmake"
+cmake .. -Dnanobind_DIR="/usr/local/lib/python3.12/site-packages/nanobind/cmake"
 
 # 3. Compile the code
 cmake --build . --config Release

@@ -62,7 +62,11 @@ def setup_logger():
         format='%(asctime)s - %(levelname)s [%(funcName)s] - %(message)s',
         datefmt='%Y-%m-%d | %H:%M:%S'
     )
+
     cpp_logger.set_info_logger(logger.info)
+    cpp_logger.set_debug_logger(logger.debug)
+    cpp_logger.set_warning_logger(logger.warning)
+    cpp_logger.set_error_logger(logger.error)
 
 def get_seq_test():
     rng = np.random.default_rng(seed=42)
@@ -102,6 +106,9 @@ def run_hmm_seq_tests():
     logger.info("########################################")
 
 def gen_tests():
+    hmm = HMM(3, False)
+    hmm.initialize_model()
+
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
     data_loader = DataLoader(load_dir=TEST_DATA_DIR)
     data_loader.load_data()

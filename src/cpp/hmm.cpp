@@ -14,6 +14,16 @@
 
 /*
  * Run forward algorithm
+ *
+ * We fill the first col of alpha using the emissions matrix
+ * and start priors. Later cols use the transition probability
+ * from previous possible states, the emissions matrix and 
+ * the inductive probability computed until that point (as a prior).
+ *
+ * We scale alpha at each timestep (normalizing by the col sum)
+ * and store it in Eigen::VectorXd c. It is used by the backward
+ * algorithm as well. When gamma and xi are computed, the scalars
+ * cancel so that parameter updates are unaffected.
  */
 void HMM::forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) {
     alpha.col(0) = B.col(0).array() * start_priors.array();
@@ -34,6 +44,14 @@ void HMM::forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::Matri
 
 /*
  * Run backward algorithm
+ *
+ * We fill the final col of beta using the alpha scalar value c(T)
+ * and the end priors array.
+ *
+ * We iterate backwards over timesteps computing the new col of beta
+ * using transition probabilities of transitioning to the next state,
+ * emissions for the next state and the inductive prior from the next state.
+ * We then scale that column of beta using c(t).
  */
 void HMM::backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) {
     size_t T = beta.cols() - 1;
@@ -49,6 +67,12 @@ void HMM::backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::Matri
 
 /*
  * Compute gamma
+ *
+ * Gamma is the probability of passing through a given state
+ * for the sequence being examined. It combined forwards and backwards
+ * probabilities to compute the probability of being in a given state
+ * at a timestep t for that sequence (considering all state sequences passing
+ * throuh that state).
  */
 void HMM::compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) {
     gamma = alpha.array() * beta.array();
@@ -56,7 +80,7 @@ void HMM::compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, co
 }
 
 /*
- * Compute xi over every timestep in the observation sequence
+ * Compute xi over every timestep in the observation sequence.
  */
 void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) {
     size_t T = xi.dimension(0);
@@ -153,10 +177,6 @@ void HMM::initialize_model() {
         }
     }
 
-    utils::CppLogger::log_debug() << start_priors;
-    utils::CppLogger::log_debug() << end_priors;
-    utils::CppLogger::log_debug() << transp;
-    utils::CppLogger::log_debug() << emissions;
     // emission probs are filled when calling the constructor
 }
 
@@ -196,7 +216,7 @@ std::ostream& operator<<(std::ostream& os, const HMM& hmm) {
     os << hmm.get_transp() << "\n\n";
     
     os << "Emission probabilities: \n";
-    os << hmm.get_emissions() << "\n\n";
+    os << hmm.get_emissions() << "\n";
 
     return os;
 }

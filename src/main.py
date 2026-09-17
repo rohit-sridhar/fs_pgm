@@ -17,6 +17,7 @@ from importlib import resources
 
 from pgm.models import HMM
 from pgm.utils.data_loader import DataLoader
+from pgm.trainer import HMMTrainer
 from pgm.utils import cpp_logger
 
 import os
@@ -30,9 +31,10 @@ import numpy as np
 args = None
 logger = logging.getLogger(__name__)
 
-ROOT = resources.files("pgm").parent.parent
+ROOT = resources.files("pgm").parent
 TEST_DATA_DIR = ROOT / "datasets" / "tests"
 
+# parse args for script
 def parse_args():
     """
     parse_args
@@ -44,9 +46,15 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-gts", "--gen-tests",
-        action="store_true",
-        help="generate tests using numpy random number generator. for now, generates them in datasets/tests.",
+        "-act", "--action",
+        type=str,
+        choices=["gen-dir-tests", "hmm-seq-test", "hmm-load-dir-test"],
+        help=(
+            "action for script. gen-dir-tests generates directory tests (data files to load)."
+            "hmm-seq-test runs a 1d hmm on just a few generated data points."
+            "hmm-load-dir-test runs a 1d hmm on the generated tests from gen-dir-tests."
+            "gen-dir-tests are typically stored TEST_DATA_DIR."
+        )
     )
     parser.add_argument(
         "-dbg", "--debug",
@@ -56,6 +64,9 @@ def parse_args():
 
     return parser.parse_args()
 
+# logging setup logging basicConfig is set.
+# the cpp loggers are handed points to the logger info/debug/warning/error
+# functions
 def setup_logger():
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
@@ -68,6 +79,7 @@ def setup_logger():
     cpp_logger.set_warning_logger(logger.warning)
     cpp_logger.set_error_logger(logger.error)
 
+# these generate lists for each of the seq tests.
 def get_seq_test():
     rng = np.random.default_rng(seed=42)
     l1 = rng.normal(loc=0.0, scale=0.5, size=10).tolist()
@@ -85,6 +97,8 @@ def get_alternating_test():
         l_final.append(0.0 if i % 2 == 0 else 1.0)
     return l_final
 
+# runs hmm seq tests (using generated tests
+# above
 def run_hmm_seq_tests():
     l_final = get_static_seq_test()
     obs = np.array(l_final)
@@ -92,37 +106,47 @@ def run_hmm_seq_tests():
     hmm = HMM(2, False)
     hmm.initialize_model()
 
-    logger.info("#################### Initialization: ####################")
-    logger.info(hmm)
+    logger.info("#################### Training HMMs: ####################")
     logger.info("########################################")
     for i in range(20):
         hmm.baum_welch(obs)
         if i % 5 == 0:
             logger.info(f"#################### Iter {i} ####################")
-            logger.info(hmm)
         logger.info("########################################")
     logger.info("#################### After 20 its: ####################")
-    logger.info(hmm)
     logger.info("########################################")
 
-def gen_tests():
-    hmm = HMM(3, False)
-    hmm.initialize_model()
+# writes sequence generate from get_seq*_test
+# toa  file in dest_dir (usually TEST_DATA_DIR)
+def write_seq_to_file(seq, fname, dest_dir):
+    with open(dest_dir / fname, "w") as f:
+        for elem in seq:
+            f.write(f"{elem}\n")
 
+# generates directory tests by calling get_seq*_test
+# functions and saving them to disk
+def gen_dir_tests():
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    data_loader = DataLoader(load_dir=TEST_DATA_DIR)
-    data_loader.load_data()
+    
+    seq_0 = get_seq_test()
+    seq_1 = get_static_seq_test()
+    seq_2 = get_alternating_test()
+
+    write_seq_to_file(seq_0, "0.txt", TEST_DATA_DIR)
+    write_seq_to_file(seq_1, "1.txt", TEST_DATA_DIR)
+    write_seq_to_file(seq_2, "2.txt", TEST_DATA_DIR)
 
 def main():
     global args
     args = parse_args()
     setup_logger()
     
-    if args.gen_tests:
-        gen_tests()
-    else:
-        data_loader = DataLoader(load_dir=Path("/data/hmm_modeling/fs_pgm/datasets"))
-        data_loader.load_data()
+    if args.action == "gen-dir-tests":
+        gen_dir_tests()
+    elif args.action == "run-hmm-dir-tests":
+        run_hmm_dir_tests()
+    elif args.action == "run-hmm-seq-tests":
+        run_hmm_seq_tests()
 
 if __name__ == "__main__":
     main()

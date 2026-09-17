@@ -1,3 +1,5 @@
+#include "utils.h"
+
 #include <iostream>
 #include <sstream>
 #include <streambuf>
@@ -6,8 +8,6 @@
 #include <vector>
 
 #include <Eigen/Dense>
-
-#include "utils.h"
 
 namespace utils {
     /** LogStream member functions **/
@@ -59,7 +59,6 @@ namespace utils {
         CppLogger::error = error_cb;
     }
 
-    //
     LogStream CppLogger::log_debug() {
         return LogStream(debug);
     }
@@ -75,12 +74,12 @@ namespace utils {
 
     // print dims of an Eigen::Vector
     void print_dims(const Eigen::VectorXd& vec) {
-        std::cout << "Tensor Shape [Rank 1]: (" << vec.size() << "," << ")\n";
+        log_info() << "Tensor Shape [Rank 1]: (" << vec.size() << "," << ")";
     }
 
     // print dims of Eigen Matrix
     void print_dims(const Eigen::MatrixXd& mat) {
-        std::cout << "Tensor Shape [Rank 2]: (" << mat.rows() << ", " << mat.cols() << ")\n";
+        log_info() << "Tensor Shape [Rank 2]: (" << mat.rows() << ", " << mat.cols() << ")";
     }
 
 }

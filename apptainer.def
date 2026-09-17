@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: python:3.12-slim-bookworm
+From: python:3.12-slim-trixie
 
 %arguments
     # Replaces ARG from Docker
@@ -29,7 +29,7 @@ From: python:3.12-slim-bookworm
     
     # Install development toolchain & architecture libraries
     apt-get install -y \
-        build-essential gcc-multilib g++-multilib
+        build-essential gcc-14 g++-14 gcc-multilib g++-multilib
 
     apt-get install -y \
         git jq vim autoconf gdb curl tree
@@ -39,8 +39,7 @@ From: python:3.12-slim-bookworm
 
     # Install core prerequisites
     apt-get install -y --no-install-recommends \
-        software-properties-common cmake \
-        gpg-agent
+        cmake gpg-agent
 
     # Install other libraries
     apt-get install -y libeigen3-dev

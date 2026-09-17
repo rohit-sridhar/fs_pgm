@@ -17,10 +17,15 @@ import sys
 
 # Register the submodules globally into sys.modules under their absolute import paths
 sys.modules["pgm.models"] = _pgm.models
+sys.modules["pgm.trainer"] = _pgm.trainer
 sys.modules["pgm.utils"] = _pgm.utils
 sys.modules["pgm.utils.cpp_logger"] = _pgm.utils.cpp_logger
 sys.modules["pgm.utils.data_loader"] = _pgm.utils.data_loader
 
-# expose models and utils
 models = _pgm.models
+trainer = _pgm.trainer
 utils = _pgm.utils
+
+utils.cpp_logger = _pgm.utils.cpp_logger
+utils.data_loader = _pgm.utils.data_loader
+

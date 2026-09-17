@@ -1,8 +1,24 @@
+#pragma once
+
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
 #include "distributions.h"
 
+/*
+ * HMM class
+ *
+ * The HMM class stores information about the markov model (num states,
+ * start/end priors, transition probs and emission probs (as a Gaussian class member).
+ *
+ * Does forward/backward algorithm, computing alpha and beta and updates gamma and xi
+ * to then update priors, transition probs and emissions in a vectorized manner.
+ *
+ * baum_welch is one iteration of forward backward and parameter updates.
+ *
+ * overrides the << stream operator so that printing hmm will print out the parameters
+ * in multiple lines.
+ */
 class HMM {
 private:
     size_t n_states;

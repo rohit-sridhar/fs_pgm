@@ -1,6 +1,7 @@
 # --- CMake and Build Directories ---
 pgm*/
 .cache/
+datasets/
 CMakeUserPresets.json
 
 # --- Python Compiled Files and Caches ---

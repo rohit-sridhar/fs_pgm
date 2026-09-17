@@ -1,17 +1,17 @@
 #define _USE_MATH_DEFINES
+#include "distributions.h"
 
 #include <iomanip>
 #include <iostream>
 #include <cmath>
 #include <Eigen/Dense>
 
-#include "distributions.h"
-
-//private
-// None for now
-
-// public:
-// Gaussian::Gaussian(double mu, double std_dev) : mu(mu), std_dev(std_dev) {}
+/*
+ * Gaussian Constructor
+ *
+ * This constructor initializes zero vectors for means
+ * and std devs based on the number of states in the HMM.
+ */
 Gaussian::Gaussian(size_t n_states) : n_states(n_states) {
     means = Eigen::VectorXd::Zero(n_states);
     std_devs = Eigen::VectorXd::Ones(n_states);
@@ -24,6 +24,12 @@ std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
     return os;
 }
 
+/*
+ * pdf (vectorized)
+ *
+ * Vectorized computations of 1d normal distribution over grid of multiple
+ * observations and each mean/std dev pair.
+ */
 Eigen::MatrixXd Gaussian::pdf(const Eigen::VectorXd& X) {
     double scalar_numerator = 1.0 / std::sqrt(2.0 * M_PI);
     Eigen::VectorXd inv_std_devs = scalar_numerator / std_devs.array();

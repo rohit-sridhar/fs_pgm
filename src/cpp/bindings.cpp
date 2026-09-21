@@ -40,10 +40,15 @@ NB_MODULE(_pgm, m) {
     cpp_logger_m.def("set_warning_logger", &utils::CppLogger::set_warning_cb);
     cpp_logger_m.def("set_error_logger", &utils::CppLogger::set_error_cb);
 
+    // set data loader module expositions
     nb::class_<DataLoader>(data_loader_m, "DataLoader")
         .def(
             nb::init<const std::filesystem::path&>(),
             nb::arg("load_dir")
+        )
+        .def_ro_static(
+            "DATAFILE_EXTENSION",
+            &DataLoader::DATAFILE_EXTENSION
         )
         .def("__str__", [](const DataLoader& data_loader) {
             std::stringstream ss;
@@ -56,11 +61,19 @@ NB_MODULE(_pgm, m) {
             return ss.str();
         });
 
+    // set hmm trainer module expositions
     nb::class_<HMMTrainer>(trainer_m, "HMMTrainer")
         .def(
             nb::init<HMM&, DataLoader&>(),
             nb::arg("hmm"),
-            nb::arg("data_loader")
+            nb::arg("data_loader"),
+            nb::keep_alive<1, 2>(),
+            nb::keep_alive<1, 3>()
+        )
+        .def(
+            "train",
+            &HMMTrainer::train,
+            nb::arg("iters") = 3
         )
         .def("__str__", [](const HMMTrainer& hmm_trainer) {
             std::stringstream ss;
@@ -72,7 +85,8 @@ NB_MODULE(_pgm, m) {
             ss << hmm_trainer;
             return ss.str();
         });
-
+    
+    // set hmm model module expositions
     nb::class_<HMM>(models_m, "HMM")
         .def(
             nb::init<size_t, bool>(),

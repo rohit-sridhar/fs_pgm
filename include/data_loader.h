@@ -27,7 +27,8 @@ class DataLoader {
 private:
     fs::path load_dir;
 public:
-    DataLoader(const fs::path& load_dir);
+    DataLoader(const fs::path& load_dir) : load_dir(load_dir) {}
+    inline static const std::string DATAFILE_EXTENSION = ".dat";
 
     Eigen::MatrixXd load_file(const fs::path& fpath);
     std::generator<Eigen::MatrixXd> stream_sequences();

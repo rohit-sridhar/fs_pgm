@@ -5,13 +5,13 @@
 
 class HMMTrainer {
 private:
-    HMM hmm;
-    DataLoader data_loader;
+    HMM& hmm;
+    DataLoader& data_loader;
     
 public:
     HMMTrainer(HMM& hmm, DataLoader& data_loader) : hmm(hmm), data_loader(data_loader) {};
     
-    void train_iters(size_t iters);
+    void train(size_t iters);
     
     const HMM& get_hmm() const { return hmm; };
     const DataLoader& get_data_loader() const {return data_loader; };

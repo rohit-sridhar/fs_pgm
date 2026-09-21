@@ -12,12 +12,8 @@
 
 namespace fs = std::filesystem;
 
-DataLoader::DataLoader(const fs::path& load_dir) : load_dir(load_dir) {
-    log_info() << "load dir: " << load_dir;
-}
-
 Eigen::MatrixXd DataLoader::load_file(const fs::path& fpath) {
-    log_info() << "Loading: " << fpath.filename();
+    log_debug() << "Loading: " << fpath.filename();
     std::ifstream file(fpath); 
     
     if (!file.is_open()) {
@@ -59,8 +55,8 @@ Eigen::MatrixXd DataLoader::load_file(const fs::path& fpath) {
         
     Eigen::MatrixXd final_matrix = matrix_view;
 
-    log_info() << "Successfully loaded matrix from: " << fpath.filename();
-    log_info() << "Dimensions: " << final_matrix.rows() << "x" << final_matrix.cols();
+    log_debug() << "Successfully loaded matrix from: " << fpath.filename();
+    log_debug() << "Dimensions: " << final_matrix.rows() << "x" << final_matrix.cols();
 
     return final_matrix;
 }
@@ -71,10 +67,12 @@ std::generator<Eigen::MatrixXd> DataLoader::stream_sequences() {
         log_debug() << "is_directory: " << is_directory(load_dir);
         if (fs::exists(load_dir) && fs::is_directory(load_dir)) {
             // Loop through all entries in the directory
-            for (const auto& entry : fs::directory_iterator(load_dir)) {
+            for (const auto& file : fs::directory_iterator(load_dir)) {
+                fs::path fpath = file.path();
+                fs::path fext = fpath.extension();
                 // Check if it is a regular file (skips folders/symlinks if desired)
-                if (fs::is_regular_file(entry)) {
-                    co_yield load_file(entry.path());
+                if (fs::is_regular_file(file) && fext == DATAFILE_EXTENSION) {
+                    co_yield load_file(fpath);
                 }
             }
         } else {
@@ -86,6 +84,6 @@ std::generator<Eigen::MatrixXd> DataLoader::stream_sequences() {
 }
 
 std::ostream& operator<<(std::ostream& os, const DataLoader& data_loader) {
-    os << "Data Loader Load dir: " << data_loader.get_load_dir();
+    os << "Data Loader Load dir: " << data_loader.get_load_dir() << "\n";
     return os;
 }

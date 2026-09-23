@@ -156,7 +156,7 @@ void HMM::load_from_config(fs::path config_file) {
     
     if (!file.is_open()) {
         log_error() << "Error: Could not open file at " << config_file;
-        log_error() << "Did not load HMM config.";
+        log_error() << "Could not load HMM config.";
         return;
     }
     
@@ -167,7 +167,11 @@ void HMM::load_from_config(fs::path config_file) {
     size_t num_cols = 0;
     
     while (std::getline(file, line)) {
-        if (line.empty()) continue; 
+        if (line.empty()) {
+            log_error() << "Error: Found empty line in config file " << config_file;
+            log_error() << "Could not load HMM config.";
+            return;
+        }
         
         std::stringstream ss(line);
         double value;
@@ -179,16 +183,16 @@ void HMM::load_from_config(fs::path config_file) {
         }
         
         if (current_row_cols != n_states) {
-            log_error() <<"Error. Config must have " << n_states << " cols.";
-            log_error() << "Did not load " << config_file;
+            log_error() << "Error. Config must have " << n_states << " cols.";
+            log_error() << "Could not load " << config_file;
             return;
         }
         num_rows++;
     }
 
     if (num_rows - 2 != n_states) {
-        log_error() <<"Error. Config must have " << n_states << " rows.";
-        log_error() << "Did not load " << config_file;
+        log_error() << "Error. Config must have " << n_states + 2 << " rows.";
+        log_error() << "Could not load " << config_file;
         return;
     }
     
@@ -215,11 +219,11 @@ void HMM::load_from_config(fs::path config_file) {
  *
  * The counter for averaging is also reset.
  */
-// void HMM::init_reset_accumulators() {
-//     init_means_acc.setZero(n_states);
-//     init_std_dev_acc.setZero(n_states);
-//     init_obs_count_acc.setZero(n_states);
-// }
+void HMM::init_reset_accumulators() {
+    init_means_acc.setZero(n_states);
+    init_std_dev_acc.setZero(n_states);
+    init_obs_count_acc.setZero(n_states);
+}
 
 /*
  * Initialize the Hidden Markov Model. For now it just initializes
@@ -266,16 +270,16 @@ void HMM::init_summarize() {
  * Resets accumulators to 0 (or initializes them
  * if they haven't been yet).
  */
-// void HMM::baum_welch_reset_accumulators() {
-//     start_prior_acc.setZero(n_states);
-//     end_prior_acc.setZero(n_states);
-// 
-//     gamma_acc.setZero(n_states);
-//     xi_acc.setZero(n_states, n_states);
-// 
-//     obs_acc.setZero(n_states);
-//     obs_sq_acc.setZero(n_states);
-// }
+void HMM::baum_welch_reset_accumulators() {
+    start_prior_acc.setZero(n_states);
+    end_prior_acc.setZero(n_states);
+
+    gamma_acc.setZero(n_states);
+    xi_acc.setZero(n_states, n_states);
+
+    obs_acc.setZero(n_states);
+    obs_sq_acc.setZero(n_states);
+}
 
 /*
  * single iteration of baum welch

@@ -72,7 +72,7 @@ public:
     // Then init_sequence should be called over each sequence.
     // Finally, init_accumulate should be called to gather
     // flat start init accumulators into the emissions.
-    // void init_reset_accumulators();
+    void init_reset_accumulators();
     void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels);
     void init_summarize();
 
@@ -82,7 +82,7 @@ public:
     // Then baum_welch_update_params. Calling the three in sequence
     // repeatedly forms multiple iterations of baum
     // welch.
-    // void baum_welch_reset_accumulators();
+    void baum_welch_reset_accumulators();
     void baum_welch_accumulate(const Eigen::VectorXd& obs);
     void baum_welch_summarize();
     

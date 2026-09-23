@@ -50,6 +50,10 @@ NB_MODULE(_pgm, m) {
             "DATAFILE_EXTENSION",
             &DataLoader::DATAFILE_EXTENSION
         )
+        .def_ro_static(
+            "LABFILE_EXTENSION",
+            &DataLoader::LABFILE_EXTENSION
+        )
         .def("__str__", [](const DataLoader& data_loader) {
             std::stringstream ss;
             ss << data_loader;
@@ -69,6 +73,10 @@ NB_MODULE(_pgm, m) {
             nb::arg("data_loader"),
             nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>()
+        )
+        .def(
+            "initialize",
+            &HMMTrainer::initialize
         )
         .def(
             "train",
@@ -91,10 +99,9 @@ NB_MODULE(_pgm, m) {
         .def(
             nb::init<size_t, bool>(),
             nb::arg("n_states"),
-            nb::arg("verbose") = false
+            nb::arg("ignore_warnings") = false
         )
-        .def("initialize_model", &HMM::initialize_model)
-        .def("baum_welch", &HMM::baum_welch)
+        .def("load_from_config", &HMM::load_from_config)
         .def("__str__", [](const HMM& hmm) {
             std::stringstream ss;
             ss << hmm;

@@ -75,13 +75,6 @@ namespace utils {
 
     
     /*
-     * Constants
-     *
-     * Floor val for variance/std_dev
-     */
-    inline const double FLOOR_VAL = 1e-12;
-    
-    /*
      * Print dims of EigenTensor for any number
      * of dimensions. For now, prints to log info
      * stream. TODO: add functionality to accept

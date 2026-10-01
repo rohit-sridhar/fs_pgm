@@ -5,18 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pgm"
 version = "0.1.0"
-dependencies = ["numpy>=2.0.0,<3.0.0"] # Add your project dependencies here if needed
+dependencies = ["numpy>=2.0.0,<3.0.0", "matplotlib>=3.10.0", "scipy>=1.13.0"]
 
 [project.scripts]
-run-pgm = "main:main"  # Format is: command_name = "file_name:function_name"
+run-pgm = "main:main"
 
 [tool.setuptools]
 # Map root modules ("") to 'src', but keep Python packages resolving normally
 package-dir = { "" = "src", "pgm" = "pgm" }
-py-modules = ["main"]   # Forces include of src/main.py explicitly
+py-modules = ["main"]
 
 [tool.setuptools.packages.find]
 where = ["."]       # Search in the repository root
 include = ["pgm*"]   # ONLY include the 'pgm' package, ignoring everything else
-# namespaces = false   # ignore namespace logic
 

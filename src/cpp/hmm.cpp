@@ -120,18 +120,23 @@ void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha,
 /*
  * update accumulators
  */
-void HMM::update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs) {
-    start_prior_acc += gamma.col(0);
-    end_prior_acc += gamma.col(gamma.cols() - 1);
+void HMM::update_accumulators(
+    const Eigen::MatrixXd& gamma,
+    const Eigen::Tensor<double, 3>& xi,
+    const Eigen::VectorXd& obs,
+    HMMBaumWelchAccumulator& acc
+) {
+    acc.start_priors += gamma.col(0);
+    acc.end_priors += gamma.col(gamma.cols() - 1);
     
-    gamma_acc += gamma.rowwise().sum();
+    acc.gamma += gamma.rowwise().sum();
     std::array<int, 1> time_dim = {0};
     Eigen::Tensor<double, 2> xi_sum_t = xi.sum(time_dim);
     Eigen::Map<Eigen::MatrixXd> xi_sum(xi_sum_t.data(), xi.dimension(1), xi.dimension(2));
-    xi_acc += xi_sum;
+    acc.xi += xi_sum;
     
-    obs_acc.noalias() += (gamma * obs);
-    obs_sq_acc.noalias() += (gamma * obs.array().square().matrix());
+    acc.obs.noalias() += (gamma * obs);
+    acc.obs_sq.noalias() += (gamma * obs.array().square().matrix());
 }
 
 /**************************************** PUBLIC FXN ****************************************/
@@ -219,11 +224,11 @@ void HMM::load_from_config(fs::path config_file) {
  *
  * The counter for averaging is also reset.
  */
-void HMM::init_reset_accumulators() {
-    init_means_acc.setZero(n_states);
-    init_std_dev_acc.setZero(n_states);
-    init_obs_count_acc.setZero(n_states);
-}
+// void HMM::init_reset_accumulators() {
+//     init_means_acc.setZero(n_states);
+//     init_std_dev_acc.setZero(n_states);
+//     init_obs_count_acc.setZero(n_states);
+// }
 
 /*
  * Initialize the Hidden Markov Model. For now it just initializes
@@ -233,7 +238,11 @@ void HMM::init_reset_accumulators() {
  * The user should call init_reset_accumulators before calling
  * this function.
  */
-void HMM::init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels) {
+void HMM::init_accumulate(
+    const Eigen::VectorXd& obs,
+    const std::vector<std::string>& labels,
+    HMMInitAccumulator& acc
+) {
     size_t seglen = obs.size() / n_states;
     if (seglen <= HMM::MIN_FRAMES_PER_STATE) {
         log_error() << "There are too few observations per state.";
@@ -251,40 +260,40 @@ void HMM::init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::str
             seglen = obs.size() - start;
         }
         
-        log_debug() << "init_accumulate start: " << start;
-        log_debug() << "init_accumulate seglen: " << seglen;
-        
-        init_means_acc(i) += obs.segment(start, seglen).sum();
-        init_std_dev_acc(i) += obs.segment(start, seglen).array().square().sum();
-        init_obs_count_acc(i) += seglen;
+        acc.means(i) += obs.segment(start, seglen).sum();
+        acc.std_devs(i) += obs.segment(start, seglen).array().square().sum();
+        acc.obs_count(i) += seglen;
     }
 }
 
-void HMM::init_summarize() {
-    Eigen::VectorXd init_obs_count_acc_dbl = init_obs_count_acc.cast<double>();
-    emissions.means = init_means_acc.array() / init_obs_count_acc_dbl.array();
-    emissions.std_devs = (init_std_dev_acc.array() / init_obs_count_acc_dbl.array()).array().sqrt();
+void HMM::init_summarize(HMMInitAccumulator& acc) {
+    Eigen::VectorXd acc_obs_count_dbl = acc.obs_count.cast<double>();
+    emissions.means = acc.means.array() / acc_obs_count_dbl.array();
+    emissions.std_devs = (acc.std_devs.array() / acc_obs_count_dbl.array()).array().sqrt();
 }
 
 /*
  * Resets accumulators to 0 (or initializes them
  * if they haven't been yet).
  */
-void HMM::baum_welch_reset_accumulators() {
-    start_prior_acc.setZero(n_states);
-    end_prior_acc.setZero(n_states);
-
-    gamma_acc.setZero(n_states);
-    xi_acc.setZero(n_states, n_states);
-
-    obs_acc.setZero(n_states);
-    obs_sq_acc.setZero(n_states);
-}
+// void HMM::baum_welch_reset_accumulators() {
+//     start_prior_acc.setZero(n_states);
+//     end_prior_acc.setZero(n_states);
+// 
+//     gamma_acc.setZero(n_states);
+//     xi_acc.setZero(n_states, n_states);
+// 
+//     obs_acc.setZero(n_states);
+//     obs_sq_acc.setZero(n_states);
+// }
 
 /*
  * single iteration of baum welch
  */
-void HMM::baum_welch_accumulate(const Eigen::VectorXd& obs) {
+void HMM::baum_welch_accumulate(
+    const Eigen::VectorXd& obs,
+    HMMBaumWelchAccumulator& acc
+) {
     size_t T = obs.size();
 
     Eigen::MatrixXd alpha = Eigen::MatrixXd::Zero(n_states, T);
@@ -302,7 +311,7 @@ void HMM::baum_welch_accumulate(const Eigen::VectorXd& obs) {
     Eigen::Tensor<double, 3> xi(T - 1, n_states, n_states);
     compute_xi(xi, alpha, beta, B);
 
-    update_accumulators(gamma, xi, obs);
+    update_accumulators(gamma, xi, obs, acc);
 }
 
 /*
@@ -311,15 +320,17 @@ void HMM::baum_welch_accumulate(const Eigen::VectorXd& obs) {
  * data. This step fills in params after an entire batch
  * has been accumulated.
  */
-void HMM::baum_welch_summarize() {
-    start_priors = start_prior_acc / start_prior_acc.sum();
-    end_priors = end_prior_acc / end_prior_acc.sum();
+void HMM::baum_welch_summarize(
+    HMMBaumWelchAccumulator& acc
+) {
+    start_priors = acc.start_priors / acc.start_priors.sum();
+    end_priors = acc.end_priors / acc.end_priors.sum();
 
-    Eigen::VectorXd transp_norm = (gamma_acc.array() - end_prior_acc.array()).cwiseMax(HMM::FLOOR_VAL);
-    transp = xi_acc.array().colwise() / transp_norm.array();
+    Eigen::VectorXd transp_norm = (acc.gamma.array() - acc.end_priors.array()).cwiseMax(HMM::FLOOR_VAL);
+    transp = acc.xi.array().colwise() / transp_norm.array();
     
-    emissions.means = obs_acc.array() / gamma_acc.array();
-    Eigen::VectorXd variances = (obs_sq_acc.array() / gamma_acc.array()) - emissions.means.array().square();
+    emissions.means = acc.obs.array() / acc.gamma.array();
+    Eigen::VectorXd variances = (acc.obs_sq.array() / acc.gamma.array()) - emissions.means.array().square();
     log_debug() << "variances \n" << variances.cwiseMax(HMM::FLOOR_VAL);
     emissions.std_devs = variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt();
 }

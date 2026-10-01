@@ -5,7 +5,7 @@
 File: src/args.py
 Author: Rohit Sridhar
 Date: 23-09-2026
-Last Modified: 
+Last Modified:
 Version: X.X
 
 Description:
@@ -15,6 +15,8 @@ Description:
 """
 
 import argparse
+
+HMM_TOPOLOGIES=["bakis", "ergodic"]
 
 def float_range(min_val, max_val, incl_lower=False, incl_upper=False):
     """Return a function that validates a float within a specific range."""
@@ -43,7 +45,7 @@ def parse_args():
     parser.add_argument(
         "-tt", "--test_type",
         type=str,
-        choices=["hmm-load-dir-test"],
+        choices=["hmm-load-dir-test", "gen-plots"],
         required=True,
         help=(
             "action for script. gen-dir-tests generates directory tests (data files to load)."
@@ -55,11 +57,21 @@ def parse_args():
     parser.add_argument(
         "-ht", "--hmm-topology",
         type=str,
-        choices=["bakis", "ergodic"],
+        choices=HMM_TOPOLOGIES,
         required=True,
         help=(
             "choose hmm topology. files are stored in ROOT/config/{args.hmm-topology}-{args.n-states} "
             "by default."
+        )
+    )
+    parser.add_argument(
+        "-stp", "--step-prob",
+        type=float_range(0.0, 1.0),
+        default=0.95,
+        help=(
+            "probability of continuing to the next step. "
+            "each generation step generates approximately args.step-n "
+            "samples. squared after each step."
         )
     )
     parser.add_argument(
@@ -87,16 +99,6 @@ def parse_args():
         )
     )
     parser.add_argument(
-        "-stp", "--step-prob",
-        type=float_range(0.0, 1.0),
-        default=0.95,
-        help=(
-            "probability of continuing to the next step. "
-            "each generation step generates approximately args.step-n "
-            "samples. squared after each step."
-        )
-    )
-    parser.add_argument(
         "-stn", "--step-n",
         type=int,
         default=15,
@@ -118,6 +120,11 @@ def parse_args():
             "ignore warnings. won't log warnings wrapped around this bool. "
             "enables debug/info level logging without warnings cluttering output."
         ),
+    )
+    parser.add_argument(
+        "-spd", "--spread",
+        action="store_true",
+        help="use spread means (multiplies means by scalar but keeps vars the same).",
     )
 
     return parser.parse_args()

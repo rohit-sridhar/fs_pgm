@@ -244,13 +244,13 @@ void HMM::init_accumulate(
     HMMInitAccumulator& acc
 ) {
     size_t seglen = obs.size() / n_states;
-    if (seglen <= HMM::MIN_FRAMES_PER_STATE) {
-        log_error() << "There are too few observations per state.";
-        log_error() << "Skipping this sequence";
-        return;
-    }
+    // if (seglen <= HMM::MIN_FRAMES_PER_STATE) {
+    //     log_error() << "There are too few observations per state.";
+    //     log_error() << "Skipping this sequence";
+    //     return;
+    // }
     
-    log_debug() << "init_accumulate: obs vec size: " << obs.size();
+    // log_debug() << "init_accumulate: obs vec size: " << obs.size();
     // iterate until last state
     for (size_t i = 0; i < n_states; ++i) {
         size_t start = i * seglen;

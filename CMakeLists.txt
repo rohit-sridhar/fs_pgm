@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_COMPILER g++-14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_BUILD_TYPE Debug)
 
 # find Python package
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
@@ -76,17 +77,15 @@ target_link_libraries(_pgm PRIVATE Eigen3::Eigen)
 target_link_libraries(_pgm PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(hmm_core PRIVATE Eigen3::Eigen)
 target_link_libraries(trainer_core PRIVATE Eigen3::Eigen)
+target_link_libraries(trainer_core PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(distributions_core PRIVATE Eigen3::Eigen)
 target_link_libraries(data_loader_core PRIVATE Eigen3::Eigen)
 target_link_libraries(utils_core PRIVATE Eigen3::Eigen)
 
 
-# link distributions_core and utils_core to pgm (nb_module) and hmm_core (main module)
+# link distributions_core and utils_core to pgm (nb_module)
 target_link_libraries(_pgm PRIVATE distributions_core)
 target_link_libraries(_pgm PRIVATE data_loader_core)
 target_link_libraries(_pgm PRIVATE utils_core)
-# target_link_libraries(hmm_core PRIVATE distributions_core)
-# target_link_libraries(hmm_core PRIVATE trainer_core)
-# target_link_libraries(hmm_core PRIVATE data_loader_core)
-# target_link_libraries(hmm_core PRIVATE utils_core)
+target_link_libraries(_pgm PRIVATE trainer_core)
 

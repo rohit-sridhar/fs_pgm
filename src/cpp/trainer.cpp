@@ -9,14 +9,14 @@
 #include "utils.h"
 
 HMMTrainer::HMMTrainer(HMM& hmm, DataLoader& data_loader) : hmm(hmm), data_loader(data_loader) {
-    // Query true OS-allocated core count
-    size_t active_cores = std::thread::hardware_concurrency();
-
-    // Set num threads to active_cores
-    omp_set_dynamic(0);
-    omp_set_num_threads(active_cores);
-
-    log_info() << "HMMTrainer initialized: Thread pool set to " << active_cores;
+    // // Query true OS-allocated core count
+    // size_t active_cores = std::thread::hardware_concurrency();
+    // 
+    // // Set num threads to active_cores
+    // omp_set_dynamic(0);
+    // omp_set_num_threads(active_cores);
+    
+    log_info() << "HMMTrainer initialized: Thread pool set to " << omp_get_num_threads();
 }
 
 void HMMTrainer::initialize() {
@@ -28,7 +28,7 @@ void HMMTrainer::initialize() {
     size_t i = 0;
     size_t max_batch_files = 64;
     size_t total_files = data_loader.get_num_files();
-
+    
     // Useful vectors containing batch and accumulators
     std::vector<SequenceAndLabel> batch_files(max_batch_files);
     std::vector<HMMInitAccumulator> local_accs(max_batch_files, HMMInitAccumulator(n_states));
@@ -39,14 +39,14 @@ void HMMTrainer::initialize() {
         ++i;
         
         if (i % max_batch_files == 0 || i == total_files) {
-            size_t batch_size = i == total_files ? max_batch_files : total_files;
+            size_t batch_size = i == total_files ? total_files : max_batch_files;
             
             log_info() << "Before pragma omp parallel";
             #pragma omp parallel for
             for (size_t j = 0; j < batch_size; ++j) {
                 SequenceAndLabel batch_pair = batch_files[j];
                 
-                log_info() << "Running init_accumulate ...";
+                // log_info() << "Running init_accumulate ...";
                 Eigen::MatrixXd sequence = batch_pair.sequence;
                 std::vector<std::string> labels = batch_pair.labels;
                 

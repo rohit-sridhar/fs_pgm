@@ -12,7 +12,34 @@
 
 namespace fs = std::filesystem;
 
+
+DataLoader::DataLoader(const fs::path& load_dir) : load_dir(load_dir) {
+    num_files = count_directories(load_dir); 
+}
+
 /************************************************** PRIVATE FXN **************************************************/
+/*
+ * Checks if file has data file extension
+ */
+bool DataLoader::is_data_file(const fs::path& fpath) {
+    // const fs::path fpath = file.path();
+    return fs::is_regular_file(fpath) && fpath.extension() == datafile_extension;
+}
+
+/* count_directories
+ *  counts directories in path and returns
+ *  if not a directory or doesn't exist returns 0
+ *
+ */
+size_t DataLoader::count_directories(const fs::path& path) {
+    if (!fs::exists(path) || !fs::is_directory(path)) return 0;
+
+    return std::count_if(fs::directory_iterator(path), fs::directory_iterator{},
+        [this](const auto& file) {
+            return is_data_file(file.path());
+        });
+}
+
 /* load_label_file()
  *  loads a label file by reading it (taking a path to it
  *  as an arg), copying the lines into a vector and returning
@@ -117,16 +144,14 @@ Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) {
 std::generator<SequenceAndLabel> DataLoader::stream_sequences_and_labels() {
     try {
         if (fs::exists(load_dir) && fs::is_directory(load_dir)) {
-            
             // Loop through all entries in the directory
             for (const auto& file : fs::directory_iterator(load_dir)) {
                 fs::path fpath = file.path();
-                fs::path fext = fpath.extension();
                 
                 // Check if it is a regular file (skips folders/symlinks if desired)
-                if (fs::is_regular_file(file) && fext == DATAFILE_EXTENSION) {
+                if (is_data_file(fpath)) {
                     Eigen::MatrixXd sequence = load_sequence_file(fpath);
-                    fpath.replace_extension(LABFILE_EXTENSION);
+                    fpath.replace_extension(labfile_extension);
                     std::vector<std::string> labels = load_label_file(fpath);
                     co_yield {sequence, labels};
                 }
@@ -150,9 +175,9 @@ std::generator<Sequence> DataLoader::stream_sequences() {
             // Loop through all entries in the directory
             for (const auto& file : fs::directory_iterator(load_dir)) {
                 fs::path fpath = file.path();
-                fs::path fext = fpath.extension();
+                
                 // Check if it is a regular file (skips folders/symlinks if desired)
-                if (fs::is_regular_file(file) && fext == DATAFILE_EXTENSION) {
+                if (is_data_file(fpath)) {
                     co_yield Sequence{load_sequence_file(fpath)};
                 }
             }

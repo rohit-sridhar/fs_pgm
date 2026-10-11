@@ -48,11 +48,11 @@ NB_MODULE(_pgm, m) {
         )
         .def_ro_static(
             "DATAFILE_EXTENSION",
-            &DataLoader::DATAFILE_EXTENSION
+            &DataLoader::datafile_extension
         )
         .def_ro_static(
             "LABFILE_EXTENSION",
-            &DataLoader::LABFILE_EXTENSION
+            &DataLoader::labfile_extension
         )
         .def("__str__", [](const DataLoader& data_loader) {
             std::stringstream ss;

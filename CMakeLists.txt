@@ -21,6 +21,7 @@ list(APPEND CMAKE_PREFIX_PATH "${NANOBIND_CMAKE_DIR}")
 
 # Nanobind and Eigen
 find_package(Eigen3 REQUIRED)
+find_package(OpenMP REQUIRED)
 find_package(nanobind CONFIG REQUIRED)
 
 # Create core C++ libraries
@@ -72,11 +73,13 @@ target_include_directories(_pgm PUBLIC include)
 
 # link Eigen library
 target_link_libraries(_pgm PRIVATE Eigen3::Eigen)
+target_link_libraries(_pgm PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(hmm_core PRIVATE Eigen3::Eigen)
 target_link_libraries(trainer_core PRIVATE Eigen3::Eigen)
 target_link_libraries(distributions_core PRIVATE Eigen3::Eigen)
 target_link_libraries(data_loader_core PRIVATE Eigen3::Eigen)
 target_link_libraries(utils_core PRIVATE Eigen3::Eigen)
+
 
 # link distributions_core and utils_core to pgm (nb_module) and hmm_core (main module)
 target_link_libraries(_pgm PRIVATE distributions_core)

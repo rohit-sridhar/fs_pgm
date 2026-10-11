@@ -53,6 +53,19 @@ MIN_SEQ_SIZE = 50
 MEANS = [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]
 VARS = [0.5, 0.25, 0.10, 0.05, 0.10, 0.25, 0.5]
 
+# try:
+#     cpu_count = os.process_cpu_count()
+# except AttributeError:
+#     # Option 2: Fallback for Python 3.3 to 3.12 on Linux
+#     try:
+#         cpu_count = len(os.sched_getaffinity(0))
+#     except AttributeError:
+#         # Option 3: Fallback for macOS / Windows (returns system total)
+#         cpu_count = os.cpu_count()
+# 
+# print(str(cpu_count))
+# os.environ["OMP_NUM_THREADS"] = str(cpu_count)
+
 # logging setup logging basicConfig is set.
 # the cpp loggers are handed points to the logger info/debug/warning/error
 # functions
@@ -171,7 +184,7 @@ def write_to_file(seq, labs, fname, dest_dir):
 # generates directory tests by calling get_seq*_test
 # functions and saving them to disk
 def gen_dir_tests():
-    seeds = random.sample(range(0, 10000), args.n_tests)
+    seeds = random.sample(range(0, 10000), args.test_size)
     logger.info(f"{len(seeds)=}")
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
         write_dir = get_save_dir(test_data_dir)

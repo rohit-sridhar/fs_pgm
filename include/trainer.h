@@ -9,7 +9,7 @@ private:
     DataLoader& data_loader;
     
 public:
-    HMMTrainer(HMM& hmm, DataLoader& data_loader) : hmm(hmm), data_loader(data_loader) {};
+    HMMTrainer(HMM& hmm, DataLoader& data_loader);
     
     void initialize();
     void train(size_t iters);

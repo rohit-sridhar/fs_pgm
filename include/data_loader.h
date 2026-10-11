@@ -35,14 +35,22 @@ struct SequenceAndLabel {
 class DataLoader {
 private:
     fs::path load_dir;
+    size_t num_files;
+
+    
+    size_t count_directories(const fs::path& path);
+
     std::vector<std::string> load_label_file(const fs::path& fpath);
     Eigen::MatrixXd load_sequence_file(const fs::path& fpath);
 
 public:
-    DataLoader(const fs::path& load_dir) : load_dir(load_dir) {}
+    DataLoader(const fs::path& load_dir);
 
-    inline static const std::string DATAFILE_EXTENSION = ".dat";
-    inline static const std::string LABFILE_EXTENSION = ".lab";
+    inline static const std::string datafile_extension = ".dat";
+    inline static const std::string labfile_extension = ".lab";
+
+    bool is_data_file(const fs::path& file);
+    size_t get_num_files() { return num_files; }
     
     std::generator<Sequence> stream_sequences();
     std::generator<SequenceAndLabel> stream_sequences_and_labels();

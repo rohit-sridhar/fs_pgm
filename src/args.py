@@ -90,12 +90,12 @@ def parse_args():
         )
     )
     parser.add_argument(
-        "-nts", "--n-tests",
+        "-tsz", "--test-size",
         type=int,
         default=100,
         help=(
-            "n tests to run. generates seeds based on an intial seed detemined "
-            "by args.seed."
+            "generate test_size samples per test. generates seeds "
+            "based on an intial seed detemined by args.seed."
         )
     )
     parser.add_argument(

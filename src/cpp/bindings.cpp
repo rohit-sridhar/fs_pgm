@@ -80,9 +80,8 @@ NB_MODULE(_pgm, m) {
             &HMMTrainer::initialize
         )
         .def(
-            "train",
-            &HMMTrainer::train,
-            nb::arg("iters") = 3
+            "train_step",
+            &HMMTrainer::train_step
         )
         .def("__str__", [](const HMMTrainer& hmm_trainer) {
             std::stringstream ss;

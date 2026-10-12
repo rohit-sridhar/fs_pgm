@@ -38,32 +38,39 @@ void HMMTrainer::initialize() {
 
     #pragma omp parallel
     {
-        for (SequenceAndLabel pair : data_loader.stream_sequences_and_labels()) {
-            // increment i first so modulo batch_size doesn't include the empty batch
-            batch_files[i % max_batch_files] = pair;
-            ++i;
-            
-            size_t i_mod_max = i % max_batch_files;
-            if (i_mod_max == 0 || i == total_files) {
-                // if i % max_batch_files is not 0 but i == total_files this is the last batch,
-                // so use the modulo. otherwise use max_batch_files
-                size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
+        #pragma omp single nowait
+        {
+            for (SequenceAndLabel pair : data_loader.stream_sequences_and_labels()) {
+                // increment i first so modulo batch_size doesn't include the empty batch
+                batch_files[i % max_batch_files] = pair;
+                ++i;
                 
-                #pragma omp for schedule(static)
-                for (size_t j = 0; j < batch_size; ++j) {
-                    const SequenceAndLabel& batch_pair = batch_files[j];
+                size_t i_mod_max = i % max_batch_files;
+                if (i_mod_max == 0 || i == total_files) {
+                    // if i % max_batch_files is not 0 but i == total_files this is the last batch,
+                    // so use the modulo. otherwise use max_batch_files
+                    size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
                     
-                    // log_info() << "Running init_accumulate ...";
-                    const Eigen::MatrixXd& sequence = batch_pair.sequence;
-                    const std::vector<std::string>& labels = batch_pair.labels;
+                    size_t j;
+                    // #pragma omp for schedule(static)
+                    for (j = 0; j < batch_size; ++j) {
+                        #pragma omp task firstprivate(j)
+                        {
+                            const SequenceAndLabel& batch_pair = batch_files[j];
+                            
+                            const Eigen::MatrixXd& sequence = batch_pair.sequence;
+                            const std::vector<std::string>& labels = batch_pair.labels;
+                            
+                            local_accs[j].clear();
+                            hmm.init_accumulate(sequence, labels, local_accs[j]);
+                        }
+                    }
                     
-                    local_accs[j].clear();
-                    hmm.init_accumulate(sequence, labels, local_accs[j]);
-                }
-                
-                // update global acc
-                for (size_t j = 0; j < batch_size; ++j) {
-                    global_acc += local_accs[j];
+                    #pragma omp taskwait
+                    // update global acc
+                    for (j = 0; j < batch_size; ++j) {
+                        global_acc += local_accs[j];
+                    }
                 }
             }
         }
@@ -74,7 +81,7 @@ void HMMTrainer::initialize() {
     log_debug() << "Finished init_summarize";
 }
 
-void HMMTrainer::train(size_t iters) {
+void HMMTrainer::train_step() {
     size_t n_states = hmm.get_n_states();
     
     // Initialize useful variables for the loop
@@ -90,44 +97,44 @@ void HMMTrainer::train(size_t iters) {
     log_debug() << "Init HMM: \n" << hmm;
     #pragma omp parallel
     {
-        for (size_t i = 0; i < iters; ++i) {
-            if (i % 5 == 0) {
-                log_info() << "Iter: " << i;
-            }
-            
-            global_acc.clear();
-            size_t j = 0;
-
+        #pragma omp single
+        {
+            size_t i = 0;
             for (Sequence sequence : data_loader.stream_sequences()) {
-                batch_files[j % max_batch_files] = sequence;
-                ++j;
+                batch_files[i % max_batch_files] = sequence;
+                ++i;
                 
-                size_t j_mod_max = j % max_batch_files;
-                if (j_mod_max == 0 || j == total_files) {
-                    // if j % max_batch_files is not 0 but j == total_files this is the last batch,
+                size_t i_mod_max = i % max_batch_files;
+                if (i_mod_max == 0 || i == total_files) {
+                    // if i % max_batch_files is not 0 but i == total_files this is the last batch,
                     // so use the modulo. otherwise use max_batch_files
-                    size_t batch_size = j_mod_max != 0 ? j_mod_max : max_batch_files;
+                    size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
                     
                     // parallelized training over the batch
-                    #pragma omp for schedule(static)
-                    for (size_t k = 0; k < batch_size; ++k) {
-                        const Eigen::MatrixXd& sequence_data = batch_files[k].data;
-                        local_accs[k].clear();
-                        hmm.baum_welch_accumulate(sequence_data, local_accs[k]);
+                    size_t j;
+                    for (j = 0; j < batch_size; ++j) {
+                        #pragma omp task firstprivate(j)
+                        {
+                            const Eigen::MatrixXd& sequence_data = batch_files[j].data;
+                            local_accs[j].clear();
+                            hmm.baum_welch_accumulate(sequence_data, local_accs[j]);
+                        }
                     }
                     
+                    #pragma omp taskwait
                     // update global acc
-                    for (size_t k = 0; k < batch_size; ++k) {
-                        global_acc += local_accs[k];
+                    for (j = 0; j < batch_size; ++j) {
+                        global_acc += local_accs[j];
                     }
                 }
             }
-
-            log_debug() << "Running baum_welch_summarize";
-            hmm.baum_welch_summarize(global_acc);
-            log_debug() << "Finished baum_welch_summarize";
         }
     }
+
+    log_debug() << "Running baum_welch_summarize";
+    hmm.baum_welch_summarize(global_acc);
+    log_debug() << "Finished baum_welch_summarize";
+
     log_debug() << "Trained HMM: \n"<< hmm;
 }
 

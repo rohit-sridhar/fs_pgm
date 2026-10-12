@@ -13,7 +13,7 @@ public:
     HMMTrainer(HMM& hmm, DataLoader& data_loader, size_t batch_size);
     
     void initialize();
-    void train(size_t iters);
+    void train_step();
     
     const HMM& get_hmm() const { return hmm; };
     const DataLoader& get_data_loader() const { return data_loader; };

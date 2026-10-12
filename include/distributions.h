@@ -15,7 +15,7 @@
 class Gaussian {
 public:
     Gaussian(size_t n_states);
-    Eigen::MatrixXd pdf(const Eigen::VectorXd& obs);
+    Eigen::MatrixXd pdf(const Eigen::VectorXd& obs) const;
 
     size_t n_states;
     Eigen::VectorXd means;

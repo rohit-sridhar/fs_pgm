@@ -68,9 +68,10 @@ NB_MODULE(_pgm, m) {
     // set hmm trainer module expositions
     nb::class_<HMMTrainer>(trainer_m, "HMMTrainer")
         .def(
-            nb::init<HMM&, DataLoader&>(),
+            nb::init<HMM&, DataLoader&, size_t>(),
             nb::arg("hmm"),
             nb::arg("data_loader"),
+            nb::arg("batch_size") = 64,
             nb::keep_alive<1, 2>(),
             nb::keep_alive<1, 3>()
         )

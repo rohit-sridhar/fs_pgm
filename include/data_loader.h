@@ -38,10 +38,10 @@ private:
     size_t num_files;
 
     
-    size_t count_directories(const fs::path& path);
+    size_t count_directories(const fs::path& path) const;
 
-    std::vector<std::string> load_label_file(const fs::path& fpath);
-    Eigen::MatrixXd load_sequence_file(const fs::path& fpath);
+    std::vector<std::string> load_label_file(const fs::path& fpath) const;
+    Eigen::MatrixXd load_sequence_file(const fs::path& fpath) const;
 
 public:
     DataLoader(const fs::path& load_dir);
@@ -49,11 +49,11 @@ public:
     inline static const std::string datafile_extension = ".dat";
     inline static const std::string labfile_extension = ".lab";
 
-    bool is_data_file(const fs::path& file);
-    size_t get_num_files() { return num_files; }
+    bool is_data_file(const fs::path& file) const;
+    size_t get_num_files() const { return num_files; }
     
-    std::generator<Sequence> stream_sequences();
-    std::generator<SequenceAndLabel> stream_sequences_and_labels();
+    std::generator<Sequence> stream_sequences() const;
+    std::generator<SequenceAndLabel> stream_sequences_and_labels() const;
     
     const fs::path& get_load_dir() const { return load_dir; };
 };

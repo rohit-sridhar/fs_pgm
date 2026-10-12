@@ -44,19 +44,19 @@ namespace utils {
 
     // These set the debug,info,warning, and error loggers.
     // The function passed in should log an std::string arg
-    // to the appropriate channel. these are expected to come
+    // to the appropriate channel. the args are expected to come
     // from python's logging module.
-    void CppLogger::set_debug_cb(CppLogger::LogCallback debug_cb) {
-        CppLogger::debug = debug_cb;
+    void CppLogger::set_debug_cb(LogCallback debug_cb) {
+        debug = debug_cb;
     }
-    void CppLogger::set_info_cb(CppLogger::LogCallback info_cb) {
-        CppLogger::info = info_cb;
+    void CppLogger::set_info_cb(LogCallback info_cb) {
+        info = info_cb;
     }
-    void CppLogger::set_warning_cb(CppLogger::LogCallback warning_cb) {
-        CppLogger::warning = warning_cb;
+    void CppLogger::set_warning_cb(LogCallback warning_cb) {
+        warning = warning_cb;
     }
-    void CppLogger::set_error_cb(CppLogger::LogCallback error_cb) {
-        CppLogger::error = error_cb;
+    void CppLogger::set_error_cb(LogCallback error_cb) {
+        error = error_cb;
     }
 
     LogStream CppLogger::log_debug() {

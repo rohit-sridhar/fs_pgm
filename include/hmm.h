@@ -32,8 +32,13 @@ struct HMMInitAccumulator {
     Eigen::VectorXd means;
     Eigen::VectorXd std_devs;
     Eigen::VectorXi obs_count;
+    size_t n_states;
     
-    HMMInitAccumulator(size_t n_states) {
+    HMMInitAccumulator(size_t n_states) : n_states(n_states) {
+        clear();
+    }
+
+    void clear() {
         means.setZero(n_states);
         std_devs.setZero(n_states);
         obs_count.setZero(n_states);
@@ -57,7 +62,13 @@ struct HMMBaumWelchAccumulator {
     Eigen::VectorXd obs;
     Eigen::VectorXd obs_sq;
 
-    HMMBaumWelchAccumulator(size_t n_states) {
+    size_t n_states;
+
+    HMMBaumWelchAccumulator(size_t n_states) : n_states(n_states) {
+        clear();
+    }
+
+    void clear() {
         start_priors.setZero(n_states);
         end_priors.setZero(n_states);
 
@@ -91,12 +102,12 @@ private:
     Eigen::MatrixXd transp;
     Gaussian emissions;
 
-    void forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B);
-    void backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B);
-    void compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta);
-    
-    void compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B);
-    void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc);
+    void forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
+    void backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
+    void compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const;
+    void compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const;
+
+    void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
     
 public:
     HMM(size_t n_states, bool ignore_warnings) : n_states(n_states), ignore_warnings(ignore_warnings), emissions(n_states) {};
@@ -118,7 +129,7 @@ public:
     // Finally, init_accumulate should be called to gather
     // flat start init accumulators into the emissions.
     // void init_reset_accumulators();
-    void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc);
+    void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const;
     void init_summarize(HMMInitAccumulator& acc);
 
     // baum welch and public helpers
@@ -128,7 +139,7 @@ public:
     // repeatedly forms multiple iterations of baum
     // welch.
     // void baum_welch_reset_accumulators();
-    void baum_welch_accumulate(const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc);
+    void baum_welch_accumulate(const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
     void baum_welch_summarize(HMMBaumWelchAccumulator& acc);
     
     // getters

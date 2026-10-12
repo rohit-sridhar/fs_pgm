@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
  * Vectorized computations of 1d normal distribution over grid of multiple
  * observations and each mean/std dev pair.
  */
-Eigen::MatrixXd Gaussian::pdf(const Eigen::VectorXd& X) {
+Eigen::MatrixXd Gaussian::pdf(const Eigen::VectorXd& X) const {
     double scalar_numerator = 1.0 / std::sqrt(2.0 * M_PI);
     Eigen::VectorXd inv_std_devs = scalar_numerator / std_devs.array();
     

@@ -21,7 +21,7 @@ DataLoader::DataLoader(const fs::path& load_dir) : load_dir(load_dir) {
 /*
  * Checks if file has data file extension
  */
-bool DataLoader::is_data_file(const fs::path& fpath) {
+bool DataLoader::is_data_file(const fs::path& fpath) const {
     // const fs::path fpath = file.path();
     return fs::is_regular_file(fpath) && fpath.extension() == datafile_extension;
 }
@@ -31,7 +31,7 @@ bool DataLoader::is_data_file(const fs::path& fpath) {
  *  if not a directory or doesn't exist returns 0
  *
  */
-size_t DataLoader::count_directories(const fs::path& path) {
+size_t DataLoader::count_directories(const fs::path& path) const {
     if (!fs::exists(path) || !fs::is_directory(path)) return 0;
 
     return std::count_if(fs::directory_iterator(path), fs::directory_iterator{},
@@ -45,7 +45,7 @@ size_t DataLoader::count_directories(const fs::path& path) {
  *  as an arg), copying the lines into a vector and returning
  *  the vector.
  */
-std::vector<std::string> DataLoader::load_label_file(const fs::path& fpath) {
+std::vector<std::string> DataLoader::load_label_file(const fs::path& fpath) const {
     log_debug() << "Loading Label File: " << fpath.filename();
     std::ifstream file(fpath); 
     
@@ -82,7 +82,7 @@ std::vector<std::string> DataLoader::load_label_file(const fs::path& fpath) {
  *  and m feature columns per frame. The data is mapped into an Eigen::MatrixXd and
  *  returned.
  */
-Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) {
+Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) const {
     log_debug() << "Loading Sequence File: " << fpath.filename();
     std::ifstream file(fpath); 
     
@@ -141,7 +141,7 @@ Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) {
  *  streams data and labels 1 by 1. yields a struct that wraps an
  *  EigenMatrix and std::vector<std::string>>.
  */
-std::generator<SequenceAndLabel> DataLoader::stream_sequences_and_labels() {
+std::generator<SequenceAndLabel> DataLoader::stream_sequences_and_labels() const {
     try {
         if (fs::exists(load_dir) && fs::is_directory(load_dir)) {
             // Loop through all entries in the directory
@@ -169,7 +169,7 @@ std::generator<SequenceAndLabel> DataLoader::stream_sequences_and_labels() {
  *  streams data files 1 by 1. yields an EigenMatrix wrapped
  *  by a Sequence struct using the load function above.
  */
-std::generator<Sequence> DataLoader::stream_sequences() {
+std::generator<Sequence> DataLoader::stream_sequences() const {
     try {
         if (fs::exists(load_dir) && fs::is_directory(load_dir)) {
             // Loop through all entries in the directory

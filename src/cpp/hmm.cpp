@@ -142,13 +142,6 @@ void HMM::update_accumulators(
 /**************************************** PUBLIC FXN ****************************************/
 
 /*
- * initialize hmm model.
- */
-// void HMM::initialize_model() {
-//     log_info() << "initialized model via flat start";
-// }
-
-/*
  * Loads hmm from config file
  * For now, config file should contain
  *  -- start priors
@@ -218,19 +211,6 @@ void HMM::load_from_config(fs::path config_file) {
 }
 
 /*
- * Resets the initialization accumulators for mean
- * and variance. Sets them to 0 so they can be summed
- * and accumulate observation data.
- *
- * The counter for averaging is also reset.
- */
-// void HMM::init_reset_accumulators() {
-//     init_means_acc.setZero(n_states);
-//     init_std_dev_acc.setZero(n_states);
-//     init_obs_count_acc.setZero(n_states);
-// }
-
-/*
  * Initialize the Hidden Markov Model. For now it just initializes
  * emissions. The user is expected to initialize transp and start/end
  * priors.
@@ -250,7 +230,6 @@ void HMM::init_accumulate(
     //     return;
     // }
     
-    // log_debug() << "init_accumulate: obs vec size: " << obs.size();
     // iterate until last state
     for (size_t i = 0; i < n_states; ++i) {
         size_t start = i * seglen;
@@ -273,22 +252,8 @@ void HMM::init_summarize(HMMInitAccumulator& acc) {
 }
 
 /*
- * Resets accumulators to 0 (or initializes them
- * if they haven't been yet).
- */
-// void HMM::baum_welch_reset_accumulators() {
-//     start_prior_acc.setZero(n_states);
-//     end_prior_acc.setZero(n_states);
-// 
-//     gamma_acc.setZero(n_states);
-//     xi_acc.setZero(n_states, n_states);
-// 
-//     obs_acc.setZero(n_states);
-//     obs_sq_acc.setZero(n_states);
-// }
-
-/*
- * single iteration of baum welch
+ * Single iteration of baum welch. Takes an
+ * observation and accumulates gamma, xi and obs/obs^2.
  */
 void HMM::baum_welch_accumulate(
     const Eigen::VectorXd& obs,
@@ -335,7 +300,6 @@ void HMM::baum_welch_summarize(
     emissions.std_devs = variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt();
 }
 
-
 // overload ostream for clean print
 std::ostream& operator<<(std::ostream& os, const HMM& hmm) {
     os << "Start prior probabilities: \n";
@@ -352,61 +316,4 @@ std::ostream& operator<<(std::ostream& os, const HMM& hmm) {
 
     return os;
 }
-
-
-// update_params old step
-/*
-// compute priors (start/end)
-start_priors = gamma.col(0);
-end_priors = gamma.col(gamma.cols() - 1);
-
-// compute gamma normalization constant for each row (floor it to avoid div by 0 issues)
-Eigen::VectorXd gamma_rownorm = gamma.rowwise().sum().cwiseMax(HMM::FLOOR_VAL);
-Eigen::VectorXd gamma_rownorm_xi = gamma.leftCols(gamma.cols() - 1).rowwise().sum().cwiseMax(HMM::FLOOR_VAL);
-
-// sum xi over time
-std::array<int, 1> time_dim = {0};
-Eigen::Tensor<double, 2> xi_sum_t = xi.sum(time_dim);
-
-// compute new transp
-Eigen::Map<Eigen::MatrixXd> xi_sum(xi_sum_t.data(), xi.dimension(1), xi.dimension(2));
-transp = xi_sum.array().colwise() / gamma_rownorm_xi.array();
-
-// compute mean
-Eigen::VectorXd w_obs_mean = (gamma * obs).array() / gamma_rownorm.array();
-
-// compute variance and std dev
-Eigen::MatrixXd w_obs_mean_mat = w_obs_mean.replicate(1, obs.size());
-Eigen::MatrixXd deviations = w_obs_mean_mat.rowwise() - obs.transpose();
-
-Eigen::MatrixXd sq_deviations = deviations.array().square();
-Eigen::MatrixXd sum_sq_deviations = (sq_deviations.array() * gamma.array()).rowwise().sum();
-
-Eigen::VectorXd w_obs_var = sum_sq_deviations.array() / gamma_rownorm.array();
-Eigen::VectorXd w_obs_std_dev = w_obs_var.array().sqrt().cwiseMax(HMM::FLOOR_VAL);
-
-// reassign mean and std dev of all states
-emissions.means = w_obs_mean;
-emissions.std_devs = w_obs_std_dev;
-*/
-
-// old initialization step
-// fill out prior probs
-/*
-start_priors.setZero(n_states);
-start_priors[0] = 1.0;
-
-// fill out end state probs
-end_priors.setZero(n_states);
-end_priors[n_states - 1] = 1.0;
-
-transp.setZero(n_states, n_states);
-// fill out transp matrix
-for (size_t i = 0; i < n_states; ++i) {
-    for (size_t j = 0; j < n_states; ++j) {
-        if (j == i || j == i + 1) transp(i,j) = 0.5;
-    }
-}
-// emission probs are filled in the constructor
-*/
 

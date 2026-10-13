@@ -12,16 +12,14 @@
  * This constructor initializes zero vectors for means
  * and std devs based on the number of states in the HMM.
  */
+Gaussian::Gaussian(size_t n_states, size_t dim, bool diag) : n_states(n_states), dim(dim), diag(diag) {
+    means = Eigen::MatrixXd::Zero(n_states, dim);
+    std_devs = Eigen::MatrixXd::Ones(n_states, dim);
+}
+
 Gaussian::Gaussian(size_t n_states) : n_states(n_states) {
     means = Eigen::VectorXd::Zero(n_states);
     std_devs = Eigen::VectorXd::Ones(n_states);
-}
-
-// overload output stream operator to print params of gaussian
-std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
-    os << "means: \n"<< g.means;
-    os << "\nstd devs: \n" << g.std_devs;
-    return os;
 }
 
 /*
@@ -45,5 +43,12 @@ Eigen::MatrixXd Gaussian::pdf(const Eigen::VectorXd& X) const {
     
     Eigen::MatrixXd pdf = coefficients.array() * exponents.array().exp().array();
     return pdf;
+}
+
+// overload output stream operator to print params of gaussian
+std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
+    os << "means: \n"<< g.means;
+    os << "\nstd devs: \n" << g.std_devs;
+    return os;
 }
 

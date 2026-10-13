@@ -19,12 +19,14 @@ import sys
 sys.modules["pgm.models"] = _pgm.models
 sys.modules["pgm.trainer"] = _pgm.trainer
 sys.modules["pgm.utils"] = _pgm.utils
+sys.modules["pgm.distributions"] = _pgm.distributions
 sys.modules["pgm.utils.cpp_logger"] = _pgm.utils.cpp_logger
 sys.modules["pgm.utils.data_loader"] = _pgm.utils.data_loader
 
 models = _pgm.models
 trainer = _pgm.trainer
 utils = _pgm.utils
+distributions = _pgm.distributions
 
 utils.cpp_logger = _pgm.utils.cpp_logger
 utils.data_loader = _pgm.utils.data_loader

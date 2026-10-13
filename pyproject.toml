@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pgm"
 version = "0.1.0"
-dependencies = ["numpy>=2.0.0,<3.0.0", "matplotlib>=3.10.0", "scipy>=1.13.0"]
+dependencies = ["numpy>=2.0.0,<3.0.0", "matplotlib>=3.10.0", "scipy>=1.13.0", "tqdm>=4.70.1"]
 
 [project.scripts]
 run-pgm = "main:main"

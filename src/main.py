@@ -14,13 +14,16 @@ Description:
         on the HMM cpp module and its output
 """
 
+from tqdm import tqdm
 from pathlib import Path
 from importlib import resources
 
 from pgm.models import HMM
-from pgm.utils.data_loader import DataLoader
 from pgm.trainer import HMMTrainer
 from pgm.utils import cpp_logger
+from pgm.distributions import Gaussian
+from pgm.utils.data_loader import DataLoader
+
 from scipy.stats import norm
 from args import (
     parse_args,
@@ -233,7 +236,9 @@ def hmm_load_dir_tests():
             f.write("Initialized HMM\n")
             f.write(str(hmm))
 
-        trainer.train(100)
+        for i in tqdm(range(100)):
+            trainer.train_step()
+
         with open(write_dir / model_name, "a") as f:
             f.write("Final HMM\n")
             f.write(str(hmm))
@@ -280,6 +285,8 @@ def get_points(hmm_dir):
     
     return points
 
+# plots emission pdf and data points that were trained on
+# using matplotlib plt
 def plot_emissions_and_points(emissions, points, fname):
     # plt.figure(figsize=(10, 6))
     fig, (ax_top, ax_bottom) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
@@ -341,6 +348,11 @@ def gen_plots():
         png_name = (hmm_dir / model_name).with_suffix(".png")
         plot_emissions_and_points(emissions, points, png_name)
 
+# test out multivariate gaussian modeling
+def test_mv_gaussian():
+    g = Gaussian(args.n_states, 2)
+    print(g)
+
 # main function
 #   sets up logger and parses args
 #   
@@ -365,6 +377,10 @@ def main():
         load_test_data_dict()
         gen_dir_tests()
         hmm_load_dir_tests()
+
+    elif args.test_type == "test-mv-gaussian":
+        test_mv_gaussian()
+
     elif args.test_type == "gen-plots":
         gen_plots()
 

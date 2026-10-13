@@ -15,9 +15,28 @@ Description:
 """
 
 import argparse
+import sys
 
 HMM_TOPOLOGIES=["bakis", "ergodic"]
 
+REQUIRED_BY = {
+    "": {},
+    "hmm-load-dir-test": {"hmm-topology", "n-states"},
+    "gen-plots": {"hmm-topology", "n-states"},
+    "test-mv-gaussian": {"n-states"},
+}
+
+def is_required(arg):
+    test_type = ""
+    
+    for i,opt in enumerate(sys.argv):
+        if opt in ["-tt", "--test-type"]:
+            test_type = sys.argv[i + 1]
+    
+    return arg in REQUIRED_BY[test_type]
+
+# takes args, defines a custom float range checking function based on 
+# the passed args and returns the function pointer
 def float_range(min_val, max_val, incl_lower=False, incl_upper=False):
     """Return a function that validates a float within a specific range."""
     def float_range_checker(arg):
@@ -43,9 +62,9 @@ def parse_args():
     )
 
     parser.add_argument(
-        "-tt", "--test_type",
+        "-tt", "--test-type",
         type=str,
-        choices=["hmm-load-dir-test", "gen-plots"],
+        choices=["hmm-load-dir-test", "gen-plots", "test-mv-gaussian"],
         required=True,
         help=(
             "action for script. gen-dir-tests generates directory tests (data files to load)."
@@ -58,7 +77,7 @@ def parse_args():
         "-ht", "--hmm-topology",
         type=str,
         choices=HMM_TOPOLOGIES,
-        required=True,
+        required=is_required("hmm-topology"),
         help=(
             "choose hmm topology. files are stored in ROOT/config/{args.hmm-topology}-{args.n-states} "
             "by default."
@@ -77,7 +96,7 @@ def parse_args():
     parser.add_argument(
         "-nst", "--n-states",
         type=int,
-        required=True,
+        required=is_required("n-states"),
         help="n states in the hmm and for test generation.",
     )
     parser.add_argument(

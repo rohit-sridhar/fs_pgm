@@ -32,6 +32,7 @@ NB_MODULE(_pgm, m) {
     nb::module_ utils_m = m.def_submodule("utils", "utils module containing helper standalone functions and helper classes.");
     nb::module_ models_m = m.def_submodule("models", "models module containing pgm model classes.");
     nb::module_ trainer_m = m.def_submodule("trainer", "trainer module containing pgm hmm trainer class.");
+    nb::module_ distributions_m = m.def_submodule("distributions", "distributions module. contains Gaussian class.");
     nb::module_ cpp_logger_m = utils_m.def_submodule("cpp_logger", "cpp logger module. encapsulates cpp logger functions.");
     nb::module_ data_loader_m = utils_m.def_submodule("data_loader", "data loader module. encapsulates data loader classes and functions.");
 
@@ -39,6 +40,25 @@ NB_MODULE(_pgm, m) {
     cpp_logger_m.def("set_info_logger", &utils::CppLogger::set_info_cb);
     cpp_logger_m.def("set_warning_logger", &utils::CppLogger::set_warning_cb);
     cpp_logger_m.def("set_error_logger", &utils::CppLogger::set_error_cb);
+
+    // set data loader module expositions
+    nb::class_<Gaussian>(distributions_m, "Gaussian")
+        .def(
+            nb::init<size_t, size_t, bool>(),
+            nb::arg("n_states"),
+            nb::arg("dim"),
+            nb::arg("diag") = false
+        )
+        .def("__str__", [](const Gaussian& gaussian) {
+            std::stringstream ss;
+            ss << gaussian;
+            return ss.str();
+        })
+        .def("__repr__", [](const Gaussian& gaussian) {
+            std::stringstream ss;
+            ss << gaussian;
+            return ss.str();
+        });
 
     // set data loader module expositions
     nb::class_<DataLoader>(data_loader_m, "DataLoader")

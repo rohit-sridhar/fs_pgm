@@ -36,42 +36,32 @@ void HMMTrainer::initialize() {
     std::vector<SequenceAndLabel> batch_files(max_batch_files);
     std::vector<HMMInitAccumulator> local_accs(max_batch_files, HMMInitAccumulator(n_states));
 
-    #pragma omp parallel
-    {
-        #pragma omp single nowait
-        {
-            for (SequenceAndLabel pair : data_loader.stream_sequences_and_labels()) {
-                // increment i first so modulo batch_size doesn't include the empty batch
-                batch_files[i % max_batch_files] = pair;
-                ++i;
+    for (SequenceAndLabel pair : data_loader.stream_sequences_and_labels()) {
+        // increment i first so modulo batch_size doesn't include the empty batch
+        batch_files[i % max_batch_files] = pair;
+        ++i;
+        
+        size_t i_mod_max = i % max_batch_files;
+        if (i_mod_max == 0 || i == total_files) {
+            // if i % max_batch_files is not 0 but i == total_files this is the last batch,
+            // so use the modulo. otherwise use max_batch_files
+            size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
+            
+            size_t j;
+            #pragma omp for schedule(static)
+            for (j = 0; j < batch_size; ++j) {
+                const SequenceAndLabel& batch_pair = batch_files[j];
                 
-                size_t i_mod_max = i % max_batch_files;
-                if (i_mod_max == 0 || i == total_files) {
-                    // if i % max_batch_files is not 0 but i == total_files this is the last batch,
-                    // so use the modulo. otherwise use max_batch_files
-                    size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
-                    
-                    size_t j;
-                    // #pragma omp for schedule(static)
-                    for (j = 0; j < batch_size; ++j) {
-                        #pragma omp task firstprivate(j)
-                        {
-                            const SequenceAndLabel& batch_pair = batch_files[j];
-                            
-                            const Eigen::MatrixXd& sequence = batch_pair.sequence;
-                            const std::vector<std::string>& labels = batch_pair.labels;
-                            
-                            local_accs[j].clear();
-                            hmm.init_accumulate(sequence, labels, local_accs[j]);
-                        }
-                    }
-                    
-                    #pragma omp taskwait
-                    // update global acc
-                    for (j = 0; j < batch_size; ++j) {
-                        global_acc += local_accs[j];
-                    }
-                }
+                const Eigen::MatrixXd& sequence = batch_pair.sequence;
+                const std::vector<std::string>& labels = batch_pair.labels;
+                
+                local_accs[j].clear();
+                hmm.init_accumulate(sequence, labels, local_accs[j]);
+            }
+            
+            // update global acc
+            for (j = 0; j < batch_size; ++j) {
+                global_acc += local_accs[j];
             }
         }
     }
@@ -95,38 +85,29 @@ void HMMTrainer::train_step() {
     std::vector<HMMBaumWelchAccumulator> local_accs(max_batch_files, HMMBaumWelchAccumulator(n_states));
 
     log_debug() << "Init HMM: \n" << hmm;
-    #pragma omp parallel
-    {
-        #pragma omp single
-        {
-            size_t i = 0;
-            for (Sequence sequence : data_loader.stream_sequences()) {
-                batch_files[i % max_batch_files] = sequence;
-                ++i;
-                
-                size_t i_mod_max = i % max_batch_files;
-                if (i_mod_max == 0 || i == total_files) {
-                    // if i % max_batch_files is not 0 but i == total_files this is the last batch,
-                    // so use the modulo. otherwise use max_batch_files
-                    size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
-                    
-                    // parallelized training over the batch
-                    size_t j;
-                    for (j = 0; j < batch_size; ++j) {
-                        #pragma omp task firstprivate(j)
-                        {
-                            const Eigen::MatrixXd& sequence_data = batch_files[j].data;
-                            local_accs[j].clear();
-                            hmm.baum_welch_accumulate(sequence_data, local_accs[j]);
-                        }
-                    }
-                    
-                    #pragma omp taskwait
-                    // update global acc
-                    for (j = 0; j < batch_size; ++j) {
-                        global_acc += local_accs[j];
-                    }
-                }
+    size_t i = 0;
+    for (Sequence sequence : data_loader.stream_sequences()) {
+        batch_files[i % max_batch_files] = sequence;
+        ++i;
+        
+        size_t i_mod_max = i % max_batch_files;
+        if (i_mod_max == 0 || i == total_files) {
+            // if i % max_batch_files is not 0 but i == total_files this is the last batch,
+            // so use the modulo. otherwise use max_batch_files
+            size_t batch_size = i_mod_max != 0 ? i_mod_max : max_batch_files;
+            
+            // parallelized training over the batch
+            size_t j;
+            #pragma omp for schedule(static)
+            for (j = 0; j < batch_size; ++j) {
+                const Eigen::MatrixXd& sequence_data = batch_files[j].data;
+                local_accs[j].clear();
+                hmm.baum_welch_accumulate(sequence_data, local_accs[j]);
+            }
+            
+            // update global acc
+            for (j = 0; j < batch_size; ++j) {
+                global_acc += local_accs[j];
             }
         }
     }

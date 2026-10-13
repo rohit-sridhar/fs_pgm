@@ -295,22 +295,22 @@ void HMM::baum_welch_accumulate(
     HMMBaumWelchAccumulator& acc
 ) const {
     size_t T = obs.size();
-
+    
     Eigen::MatrixXd alpha = Eigen::MatrixXd::Zero(n_states, T);
     Eigen::MatrixXd beta = Eigen::MatrixXd::Zero(n_states, T);
-
+    
     Eigen::MatrixXd B = emissions.pdf(obs);
-
+    
     Eigen::VectorXd c = Eigen::VectorXd::Zero(T);
     forward(alpha, c, B);
     backward(beta, c, B);
     
     Eigen::MatrixXd gamma = Eigen::MatrixXd::Zero(n_states, T);
     compute_gamma(gamma, alpha, beta);
-
+    
     Eigen::Tensor<double, 3> xi(T - 1, n_states, n_states);
     compute_xi(xi, alpha, beta, B);
-
+    
     update_accumulators(gamma, xi, obs, acc);
 }
 

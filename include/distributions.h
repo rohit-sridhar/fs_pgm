@@ -15,11 +15,14 @@
 class Gaussian {
 public:
     Gaussian(size_t n_states);
+    Gaussian(size_t n_states, size_t dim, bool diag);
     Eigen::MatrixXd pdf(const Eigen::VectorXd& obs) const;
 
     size_t n_states;
-    Eigen::VectorXd means;
-    Eigen::VectorXd std_devs;
+    size_t dim;
+    bool diag;
+    Eigen::MatrixXd means;
+    Eigen::MatrixXd std_devs;
 };
 
 std::ostream& operator<<(std::ostream& os, const Gaussian& g);

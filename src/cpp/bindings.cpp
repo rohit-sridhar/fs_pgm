@@ -93,7 +93,8 @@ NB_MODULE(_pgm, m) {
             nb::arg("data_loader"),
             nb::arg("batch_size") = 64,
             nb::keep_alive<1, 2>(),
-            nb::keep_alive<1, 3>()
+            nb::keep_alive<1, 3>(),
+            nb::keep_alive<1, 4>()
         )
         .def(
             "initialize",
@@ -117,8 +118,9 @@ NB_MODULE(_pgm, m) {
     // set hmm model module expositions
     nb::class_<HMM>(models_m, "HMM")
         .def(
-            nb::init<size_t, bool>(),
+            nb::init<size_t, std::vector<std::string>&, bool>(),
             nb::arg("n_states"),
+            nb::arg("label_set"),
             nb::arg("ignore_warnings") = false
         )
         .def("load_from_config", &HMM::load_from_config)

@@ -109,3 +109,21 @@ constexpr auto log_info = &utils::CppLogger::log_info;
 constexpr auto log_warning = &utils::CppLogger::log_warning;
 constexpr auto log_error = &utils::CppLogger::log_error;
 
+// overloads for shared types
+
+/* Overload << operator to print vectors.
+ */
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
+    size_t i = 0;
+
+    os << "[";
+    for(; i < vec.size() - 1; ++i) {
+        os << vec.at(i);
+        os << " ";
+    }
+    os << vec.at(i) << "]";
+    
+    return os;
+}
+

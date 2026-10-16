@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "hmm.h"
 #include "data_loader.h"
 

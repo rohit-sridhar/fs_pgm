@@ -33,12 +33,16 @@ void HMMTrainer::initialize() {
     size_t total_files = data_loader.get_num_files();
     
     // Useful vectors containing batch and accumulators
-    std::vector<SequenceAndLabel> batch_files(max_batch_files);
+    std::vector<SequenceAndLabel> batch_files;
     std::vector<HMMInitAccumulator> local_accs(max_batch_files, HMMInitAccumulator(n_states));
 
-    for (SequenceAndLabel pair : data_loader.stream_sequences_and_labels()) {
+    for (auto&& pair : data_loader.stream_sequences_and_labels()) {
         // increment i first so modulo batch_size doesn't include the empty batch
-        batch_files[i % max_batch_files] = pair;
+        if (batch_files.size() == max_batch_files) {
+            batch_files[i % max_batch_files] = std::move(pair);
+        } else{
+            batch_files.push_back(std::move(pair));
+        }
         ++i;
         
         size_t i_mod_max = i % max_batch_files;
@@ -50,9 +54,9 @@ void HMMTrainer::initialize() {
             size_t j;
             #pragma omp for schedule(static)
             for (j = 0; j < batch_size; ++j) {
-                const SequenceAndLabel& batch_pair = batch_files[j];
+                const SequenceAndLabel batch_pair = batch_files[j];
                 
-                const Eigen::MatrixXd& sequence = batch_pair.sequence;
+                const Eigen::MatrixXd& sequence = batch_pair.data;
                 const std::vector<std::string>& labels = batch_pair.labels;
                 
                 local_accs[j].clear();
@@ -81,13 +85,17 @@ void HMMTrainer::train_step() {
     // accumulates in pragma omp critical.
     HMMBaumWelchAccumulator global_acc = HMMBaumWelchAccumulator(n_states);
     // Useful vectors containing batch and accumulators
-    std::vector<Sequence> batch_files(max_batch_files);
+    std::vector<Sequence> batch_files;
     std::vector<HMMBaumWelchAccumulator> local_accs(max_batch_files, HMMBaumWelchAccumulator(n_states));
 
     log_debug() << "Init HMM: \n" << hmm;
     size_t i = 0;
     for (Sequence sequence : data_loader.stream_sequences()) {
-        batch_files[i % max_batch_files] = sequence;
+        if (batch_files.size() == max_batch_files) {
+            batch_files[i % max_batch_files] = std::move(sequence);
+        } else {
+            batch_files.push_back(std::move(sequence));
+        }
         ++i;
         
         size_t i_mod_max = i % max_batch_files;

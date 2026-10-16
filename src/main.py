@@ -54,7 +54,7 @@ TEST_DATA_DICT = {
 
 MIN_SEQ_SIZE = 50
 MEANS = [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0]
-VARS = [0.5, 0.25, 0.10, 0.05, 0.10, 0.25, 0.5]
+VARS = [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
 
 # try:
 #     cpu_count = os.process_cpu_count()
@@ -127,7 +127,7 @@ def get_standard_seq_test(n_states, seed):
     prev_state = -1
 
     while True:
-        size = max(int(rng.normal(loc=args.step_n, scale=3)), 10)
+        size = max(int(rng.normal(loc=args.step_n, scale=0.5)), 1)
         state = get_next_state(n_states, prev_state)
         prev_state = state
 
@@ -148,19 +148,19 @@ def get_static_seq_test(n_states, seed):
     rng = np.random.default_rng(seed=seed)
     alphabet = string.ascii_lowercase[:args.n_states]
     continue_prob = args.step_prob
-
+    
     seq = []
     labs = []
     prev_state = -1
-
+    
     while True: 
-        size = max(int(rng.normal(loc=args.step_n, scale=3)), 10)
+        size = max(int(rng.normal(loc=args.step_n, scale=0.5)), 1)
         state = get_next_state(n_states, prev_state)
         prev_state = state
         
         seq += [MEANS[state] for _ in range(size)]
         labs.append(alphabet[state])
-
+        
         if len(seq) > MIN_SEQ_SIZE:
             if continue_prob < random.random():
                 break
@@ -215,8 +215,9 @@ def gen_dir_tests():
 # run the hmm load dir tests. 
 def hmm_load_dir_tests():
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
+        n_states = args.n_states * 3 if args.hmm_topology == "composite" else args.n_states
         hmm = HMM(
-            n_states=args.n_states,
+            n_states=n_states,
             ignore_warnings=args.ignore_warnings
         )
         model_name = get_model_name()

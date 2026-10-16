@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <iostream>
+#include <string>
 #include <filesystem>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -96,6 +99,7 @@ class HMM {
 private:
     size_t n_states;
     bool ignore_warnings;
+    std::vector<std::string> label_set;
     
     Eigen::VectorXd start_priors;
     Eigen::VectorXd end_priors;
@@ -110,7 +114,12 @@ private:
     void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
     
 public:
-    HMM(size_t n_states, bool ignore_warnings) : n_states(n_states), ignore_warnings(ignore_warnings), emissions(n_states) {};
+    HMM(
+        size_t n_states,
+        std::vector<std::string>& labels,
+        bool ignore_warnings
+    ) : n_states(n_states), label_set(labels), ignore_warnings(ignore_warnings), emissions(n_states)
+    {};
 
     // universal floor val to avoid 0 variance and div by zero
     inline static const double FLOOR_VAL = 1e-12;
@@ -148,6 +157,7 @@ public:
     const Eigen::VectorXd& get_end_priors() const { return end_priors; };
     const Eigen::MatrixXd& get_transp() const { return transp; };
     const Gaussian& get_emissions() const { return emissions; };
+    const std::vector<std::string>& get_label_set() const { return label_set; };
 };
 
 std::ostream& operator<<(std::ostream& os, const HMM& hmm);

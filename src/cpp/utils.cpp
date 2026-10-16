@@ -81,5 +81,6 @@ namespace utils {
     void print_dims(const Eigen::MatrixXd& mat) {
         log_info() << "Tensor Shape [Rank 2]: (" << mat.rows() << ", " << mat.cols() << ")";
     }
-
 }
+
+

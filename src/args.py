@@ -17,7 +17,7 @@ Description:
 import argparse
 import sys
 
-HMM_TOPOLOGIES=["bakis", "ergodic"]
+HMM_TOPOLOGIES=["bakis", "ergodic", "composite"]
 
 REQUIRED_BY = {
     "": {},
@@ -120,7 +120,7 @@ def parse_args():
     parser.add_argument(
         "-stn", "--step-n",
         type=int,
-        default=15,
+        default=2,
         help=(
             "number of samples per step centered at random state i. "
             "the number of samples itself is normally distributed, centered "

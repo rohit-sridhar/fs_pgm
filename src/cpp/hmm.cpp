@@ -235,12 +235,13 @@ void HMM::init_accumulate(
         size_t start = i * seglen;
         if (i == n_states - 1) {
             // since seglen is originally from floor division
-            // we grab the rest of the array for the last it.
+            // we grab the rest of the array for the last iter.
             seglen = obs.size() - start;
         }
         
         acc.means(i) += obs.segment(start, seglen).sum();
-        acc.std_devs(i) += obs.segment(start, seglen).array().square().sum();
+        Eigen::VectorXd mean_diffs = obs.segment(start, seglen).array() - acc.means(i);
+        acc.std_devs(i) += mean_diffs.array().square().sum();
         acc.obs_count(i) += seglen;
     }
 }
@@ -314,6 +315,8 @@ std::ostream& operator<<(std::ostream& os, const HMM& hmm) {
     os << "Emission probabilities: \n";
     os << hmm.get_emissions() << "\n\n";
 
+    os << "Label set: \n";
+    os << hmm.get_label_set() << "\n\n";
     return os;
 }
 

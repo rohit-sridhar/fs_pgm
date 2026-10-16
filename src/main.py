@@ -200,22 +200,22 @@ def gen_dir_tests():
         for seed in seeds:
             random.seed(seed)
             seq, labs = TEST_DATA_DICT[test_data_dir](args.n_states, seed)
-
+            
             fname = f"{i}_{seed}"
             seq_lens.append(len(seq))
-
+            
             write_to_file(seq, labs, fname, write_dir)
-
+        
         mean_seq_len = sum(seq_lens) / len(seq_lens)
         min_seq_len = min(seq_lens)
         max_seq_len = max(seq_lens)
-
+        
         logger.info(f"{write_dir=}")
         logger.info(f"{mean_seq_len=}")
         logger.info(f"{min_seq_len=}")
         logger.info(f"{max_seq_len=}")
 
-# run the hmm load dir tests. 
+# run the hmm load dir tests.
 def hmm_load_dir_tests():
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
         n_states = args.n_states * 3 if args.hmm_topology == "composite" else args.n_states
@@ -224,7 +224,7 @@ def hmm_load_dir_tests():
         hmm = HMM(
             n_states=n_states,
             label_set=tuple(alphabet),
-            ignore_warnings=args.ignore_warnings,
+            ignore_warnings=args.ignore_warnings
         )
         model_name = get_model_name()
         config_file = get_config_file()

@@ -103,6 +103,9 @@ def get_save_dir(root_dir):
         subdir = f"{args.n_states}state"
     return root_dir / subdir
 
+def get_alphabet():
+    return string.ascii_lowercase[:args.n_states]
+
 # load test data dict
 def load_test_data_dict():
     global TEST_DATA_DICT
@@ -119,7 +122,7 @@ def get_next_state(n_states, prev_state):
 # centered around floats specific to each state
 def get_standard_seq_test(n_states, seed):
     rng = np.random.default_rng(seed=seed)
-    alphabet = string.ascii_lowercase[:args.n_states]
+    alphabet = get_alphabet()
     continue_prob = args.step_prob
 
     seq = []
@@ -146,7 +149,7 @@ def get_standard_seq_test(n_states, seed):
 # the same val over and over).
 def get_static_seq_test(n_states, seed):
     rng = np.random.default_rng(seed=seed)
-    alphabet = string.ascii_lowercase[:args.n_states]
+    alphabet = get_alphabet()
     continue_prob = args.step_prob
     
     seq = []
@@ -216,9 +219,12 @@ def gen_dir_tests():
 def hmm_load_dir_tests():
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
         n_states = args.n_states * 3 if args.hmm_topology == "composite" else args.n_states
+        alphabet = get_alphabet()
+
         hmm = HMM(
             n_states=n_states,
-            ignore_warnings=args.ignore_warnings
+            label_set=tuple(alphabet),
+            ignore_warnings=args.ignore_warnings,
         )
         model_name = get_model_name()
         config_file = get_config_file()

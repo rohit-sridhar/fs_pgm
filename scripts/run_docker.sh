@@ -25,16 +25,17 @@ if [ "$cmd" = "run" ]; then
     extra_args="${@:4}"
 fi
 
-local_image="rohit_hmm_fingerspelling"
+local_image="fs_pgm"
 
-PROJECTS_ROOT="${PROJECTS_ROOT:-/data}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-/Users/rohitsridhar/projects}"
 LOCAL_HTK_IMAGE="${LOCAL_HTK_IMAGE:-fs_pgm}"
 
-fingerspelling_path="${FINGERSPELLING_PATH:-${PROJECTS_ROOT}/hmm_modeling/fs_pgm}"
-fs_transformers_path="${FS_TRANSFORMERS_PATH:-${PROJECTS_ROOT}/deep_learning/fs_transformers}"
+fingerspelling_path="${FINGERSPELLING_PATH:-${PROJECTS_ROOT}/fs_pgm}"
+fs_transformers_path="${FS_TRANSFORMERS_PATH:-${PROJECTS_ROOT}/fs_transformers}"
 fingerspelling_video_path="${FINGERSPELLING_VIDEO_PATH:-${PROJECTS_ROOT}/sign_language_videos/fingerspelling_videos}"
 islr_mputils_out_path="${ISLR_MPUTILS_OUT_PATH:-${PROJECTS_ROOT}/deep_learning/ISLR-ML/mputils/out}"
 vimrc_dir="${VIM_DIR:-${HOME}/.vim}"
+vimrc_file="${MYVIMRC:-${HOME}/.vimrc}"
 
 case "$cmd" in
     ils)
@@ -61,12 +62,13 @@ case "$cmd" in
         fi
 
         # --platform linux/arm64 \
+        # -v "${islr_mputils_out_path}":"/data/deep_learning/ISLR-ML/mputils:ro" \
         docker run -it --rm \
           -v "${fingerspelling_path}":"/data/hmm_modeling/fs_pgm" \
           -v "${fs_transformers_path}":"/data/deep_learning/fs_transformers" \
           -v "${fingerspelling_video_path}":"/data/sign_language_videos/fingerspelling_videos:ro" \
-          -v "${islr_mputils_out_path}":"/data/deep_learning/ISLR-ML/mputils:ro" \
           -v "${vimrc_dir}":"/root/.vim" \
+          -v "${vimrc_file}":"/root/.vimrc" \
           -e HOSTNAME_SERVER="$HOSTNAME" \
           --name "$container" "$LOCAL_HTK_IMAGE"
         ;;

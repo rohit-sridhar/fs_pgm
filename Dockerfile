@@ -1,36 +1,45 @@
-FROM python:3.12-slim-bookworm
+# Use the identical base image specified in your Apptainer recipe
+FROM python:3.12-slim-trixie
 
+# Replaces %arguments and enforces a non-interactive frontend during build-time
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Replaces %environment system variables
 ENV TZ=Etc/UTC
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Set the working directory (corresponds to your preferred PWD landing directory)
 WORKDIR /data/hmm_modeling/fs_pgm
-RUN mkdir /root/.tmp
 
-# add compiler tools and multi arch support
-RUN dpkg --add-architecture i386
-RUN apt-get update -y && apt-get upgrade -y
+# Replaces the %post section instructions
+RUN mkdir -p /root/.tmp && \
+    apt-get update -y && apt-get upgrade -y && \
+    \
+    # Install development toolchain & architecture libraries
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc-14 \
+        g++-14 \
+        git \
+        jq \
+        vim \
+        autoconf \
+        gdb \
+        curl \
+        tree \
+        libx11-dev \
+        libc6-dev \
+        cmake \
+        gpg-agent \
+        libeigen3-dev && \
+    \
+    # Install GitHub Copilot CLI
+    curl -fsSL https://gh.io/copilot-install | bash && \
+    \
+    # Clean up apt caches to minimize container image footprint
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y \
-    build-essential gcc-multilib g++-multilib
-
-RUN apt-get install -y \
-    git jq vim autoconf gdb curl tree
-
-RUN apt-get install -y \
-    libx11-dev:i386 libx11-dev libc6-dev-i386 libc6-dev
-
-# Install core prerequisites
-RUN apt-get install -y --no-install-recommends \
-    software-properties-common cmake \
-    gpg-agent
-
-# Install other libraries
-RUN apt-get install -y libeigen3-dev
-
-# Install python libraries
-RUN pip install --no-cache-dir -e -t /data/hmm_modeling/fs_pgm
-
-# Install copilot
-RUN curl -fsSL https://gh.io/copilot-install | bash
-
+# Replaces %runscript to launch a default interactive bash shell
 CMD ["bash"]
 

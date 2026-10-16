@@ -13,7 +13,7 @@ run-pgm = "main:main"
 [tool.setuptools]
 # Map root modules ("") to 'src', but keep Python packages resolving normally
 package-dir = { "" = "src", "pgm" = "pgm" }
-py-modules = ["main"]
+py-modules = ["main", "args"]
 
 [tool.setuptools.packages.find]
 where = ["."]       # Search in the repository root

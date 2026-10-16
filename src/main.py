@@ -90,25 +90,48 @@ def setup_logger():
     # The image plugin PIL can also be incredibly noisy.
     logging.getLogger("PIL").setLevel(logging.WARNING)
 
+# the model name. for now just consists of the hmm topology
 def get_model_name():
     return f"{args.hmm_topology}"
 
+# get the configuration file name given the hmm topology
+# and n_states. should be in the CONFIG dir
 def get_config_file():
     return f"{args.hmm_topology}_{args.n_states}state"
 
-def get_save_dir(root_dir):
+# get the save directory given the test data root dir.
+# TEST_DATA_DICT gives the root dir for each type of
+# test data
+def get_save_dir(root_dir, seed=-1):
+    subdir = Path(f"{args.n_states}state")
     if args.spread:
-        subdir = f"{args.n_states}state-spread"
-    else:
-        subdir = f"{args.n_states}state"
+        subdir = Path(f"{subdir}-spread")
+    if seed >= 0:
+        subdir /= f"{seed}"
+
     return root_dir / subdir
 
+# return the alphabet based on the number of states
+# some types of models (like composite) scale the number
+# of states per letter by some positive integer, so this
+# may not correspond to n_states in the final model
 def get_alphabet():
     return string.ascii_lowercase[:args.n_states]
 
-# load test data dict
-def load_test_data_dict():
+# returns n seeds (only up to 10000 unique ones)
+def get_seeds(n):
+    return random.sample(range(0, 10000), n)
+
+# sets up test env:
+#   Loads the test data dict
+#   Clears TEST_DATA_DIR
+def setup_test_env():
     global TEST_DATA_DICT
+    if TEST_DATA_DIR.exists() and TEST_DATA_DIR.is_dir():
+        shutil.rmtree(TEST_DATA_DIR)
+
+    TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    
     TEST_DATA_DICT[TEST_DATA_DIR / "standard"] = get_standard_seq_test
     TEST_DATA_DICT[TEST_DATA_DIR / "static"] = get_static_seq_test
 
@@ -189,11 +212,13 @@ def write_to_file(seq, labs, fname, dest_dir):
 
 # generates directory tests by calling get_seq*_test
 # functions and saving them to disk
-def gen_dir_tests():
-    seeds = random.sample(range(0, 10000), args.test_size)
+def gen_dir_tests(test_set_seed):
+    random.seed(test_set_seed)
+    seeds = get_seeds(args.test_size)
     logger.info(f"{len(seeds)=}")
+
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
-        write_dir = get_save_dir(test_data_dir)
+        write_dir = get_save_dir(test_data_dir, test_set_seed)
         write_dir.mkdir(parents=True, exist_ok=True)
         
         seq_lens = []
@@ -216,7 +241,7 @@ def gen_dir_tests():
         logger.info(f"{max_seq_len=}")
 
 # run the hmm load dir tests.
-def hmm_load_dir_tests():
+def hmm_load_dir_tests(test_set_seed):
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
         n_states = args.n_states * 3 if args.hmm_topology == "composite" else args.n_states
         alphabet = get_alphabet()
@@ -230,7 +255,7 @@ def hmm_load_dir_tests():
         config_file = get_config_file()
         hmm.load_from_config(CONFIG / config_file)
         
-        write_dir = get_save_dir(test_data_dir)
+        write_dir = get_save_dir(test_data_dir, test_set_seed)
         with open(write_dir / model_name, "w") as f:
             f.write("Empty HMM\n")
             f.write(str(hmm))
@@ -249,6 +274,11 @@ def hmm_load_dir_tests():
         with open(write_dir / model_name, "a") as f:
             f.write("Final HMM\n")
             f.write(str(hmm))
+        
+        write_root = get_save_dir(test_data_dir)
+        with open(write_root / "results.csv", "a") as f:
+            f.write(str(hmm.emissions))
+            f.write("\n")
 
 # get emissions probabilities from the hmm files
 def get_emissions(hmm_file):
@@ -345,7 +375,7 @@ def plot_emissions_and_points(emissions, points, fname):
 #   plot per HMM and N state model
 def gen_plots():
     for test_data_dir in TEST_DATA_DICT:
-        hmm_dir = get_save_dir(test_data_dir)
+        hmm_dir = get_save_dir(test_data_dir, -1)
         logger.info(f"inspecting: {hmm_dir}")
         
         model_name = get_model_name()
@@ -381,9 +411,14 @@ def main():
         global MIN_SEQ_SIZE
         MIN_SEQ_SIZE = args.n_states * args.step_n
 
-        load_test_data_dict()
-        gen_dir_tests()
-        hmm_load_dir_tests()
+        seeds = get_seeds(args.n_tests)
+        setup_test_env()
+
+        for seed in seeds:
+            gen_dir_tests(seed)
+
+        for seed in seeds:
+            hmm_load_dir_tests(seed)
 
     elif args.test_type == "test-mv-gaussian":
         test_mv_gaussian()

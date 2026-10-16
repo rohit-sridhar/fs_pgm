@@ -60,8 +60,23 @@ def parse_args():
         description="run-pgm options",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    main_args = parser.add_argument_group("Main Args", "Main arguments for script")
+    modeling_args = parser.add_argument_group("Modeling Args", "Modeling arguments for hyperparameter and configuration")
+    test_args = parser.add_argument_group("Test Args", "Arguments for configuration of test generation (static and standard norm)")
+    boolean_args = parser.add_argument_group("Booleans Args", "Boolean arguments for script config (debug, spread, etc.)")
 
-    parser.add_argument(
+    # main script options
+    main_args.add_argument(
+        "-sd", "--seed",
+        type=int,
+        default=434,
+        help=(
+            "seed for random generation. set at the beginning of the script for "
+            "random. any further seeds are generated from this seed."
+        )
+    )
+
+    main_args.add_argument(
         "-tt", "--test-type",
         type=str,
         choices=["hmm-load-dir-test", "gen-plots", "test-mv-gaussian"],
@@ -73,7 +88,9 @@ def parse_args():
             "gen-dir-tests are typically stored TEST_DATA_DIR."
         )
     )
-    parser.add_argument(
+
+    # modeling hyperparameters
+    modeling_args.add_argument(
         "-ht", "--hmm-topology",
         type=str,
         choices=HMM_TOPOLOGIES,
@@ -83,41 +100,34 @@ def parse_args():
             "by default."
         )
     )
-    parser.add_argument(
-        "-stp", "--step-prob",
-        type=float_range(0.0, 1.0),
-        default=0.95,
-        help=(
-            "probability of continuing to the next step. "
-            "each generation step generates approximately args.step-n "
-            "samples. squared after each step."
-        )
-    )
-    parser.add_argument(
+    modeling_args.add_argument(
         "-nst", "--n-states",
         type=int,
         required=is_required("n-states"),
         help="n states in the hmm and for test generation.",
     )
-    parser.add_argument(
-        "-sd", "--seed",
+
+    # Test generation args
+    test_args.add_argument(
+        "-nts", "--n-tests",
         type=int,
-        default=434,
+        default=5,
         help=(
-            "seed for random generation. set at the beginning of the script for "
-            "random. any further seeds are generated from this seed."
+            "n tests to generate. Sets a seed for each test and saves"
+            "test data in datasets/tests/[test_type]/[n-state]/[seed]"
+            "The generator seed for each test is seeded from args.seed"
         )
     )
-    parser.add_argument(
+    test_args.add_argument(
         "-tsz", "--test-size",
         type=int,
-        default=100,
+        default=10,
         help=(
             "generate test_size samples per test. generates seeds "
             "based on an intial seed detemined by args.seed."
         )
     )
-    parser.add_argument(
+    test_args.add_argument(
         "-stn", "--step-n",
         type=int,
         default=2,
@@ -127,6 +137,18 @@ def parse_args():
             "at step-n."
         )
     )
+    test_args.add_argument(
+        "-stp", "--step-prob",
+        type=float_range(0.0, 1.0),
+        default=0.95,
+        help=(
+            "probability of continuing to the next step. "
+            "each generation step generates approximately args.step-n "
+            "samples. squared after each step."
+        )
+    )
+
+    # Boolean flags
     parser.add_argument(
         "-dbg", "--debug",
         action="store_true",

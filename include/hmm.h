@@ -64,20 +64,20 @@ struct HMMBaumWelchAccumulator {
     
     Eigen::VectorXd obs;
     Eigen::VectorXd obs_sq;
-
+    
     size_t n_states;
-
+    
     HMMBaumWelchAccumulator(size_t n_states) : n_states(n_states) {
         clear();
     }
-
+    
     void clear() {
         start_priors.setZero(n_states);
         end_priors.setZero(n_states);
-
+        
         gamma.setZero(n_states);
         xi.setZero(n_states, n_states);
-
+        
         obs.setZero(n_states);
         obs_sq.setZero(n_states);
     }
@@ -91,6 +91,7 @@ struct HMMBaumWelchAccumulator {
 
         obs += acc.obs;
         obs_sq += acc.obs_sq;
+        
         return *this;
     }
 };
@@ -98,35 +99,42 @@ struct HMMBaumWelchAccumulator {
 class HMM {
 private:
     size_t n_states;
+    size_t states_per_label;
     bool ignore_warnings;
-    std::vector<std::string> label_set;
+
+    // label_vec is a vector of labels
+    // label_map maps labels in label_vec to indices in label_vec
+    std::vector<std::string> label_vec;
+    std::unordered_map<std::string, size_t> label_map;
     
     Eigen::VectorXd start_priors;
     Eigen::VectorXd end_priors;
     Eigen::MatrixXd transp;
     Gaussian emissions;
-
+    
     void forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
     void backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
+    
     void compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const;
     void compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const;
-
+    
     void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
     
 public:
-    HMM(
-        size_t n_states,
-        std::vector<std::string>& labels,
-        bool ignore_warnings
-    ) : n_states(n_states), label_set(labels), ignore_warnings(ignore_warnings), emissions(n_states)
-    {};
+    HMM(size_t n_states, std::vector<std::string>& labels, bool ignore_warnings);
 
+    // EigenRef declarations for zero copy references
+    using Refd = Eigen::Ref<Eigen::MatrixXd, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+    using ConstRefd = Eigen::Ref<const Eigen::MatrixXd, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+    using Refi = Eigen::Ref<Eigen::MatrixXi, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+    
     // universal floor val to avoid 0 variance and div by zero
     inline static const double FLOOR_VAL = 1e-12;
-
-    // set MIN FPS to 1. Here, FPS means frames per state rather
+    
+    // set MIN FPS and MIN FPL to 1. Here, FPS means frames per state rather
     // than frames per second. Although a little confusing, an abbreviation
-    // keeps names compact
+    // keeps names compact. FPL is frames per Label.
+    inline static const size_t MIN_FRAMES_PER_LABEL = 1;
     inline static const size_t MIN_FRAMES_PER_STATE = 1;
     
     // load hmm definition from config
@@ -140,7 +148,7 @@ public:
     // void init_reset_accumulators();
     void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const;
     void init_summarize(HMMInitAccumulator& acc);
-
+    
     // baum welch and public helpers
     // First, baum_welch_reset_accumulators should be called.
     // Then baum_welch across all obs.
@@ -157,7 +165,7 @@ public:
     const Eigen::VectorXd& get_end_priors() const { return end_priors; };
     const Eigen::MatrixXd& get_transp() const { return transp; };
     const Gaussian& get_emissions() const { return emissions; };
-    const std::vector<std::string>& get_label_set() const { return label_set; };
+    const std::vector<std::string>& get_labels() const { return label_vec; };
 };
 
 std::ostream& operator<<(std::ostream& os, const HMM& hmm);

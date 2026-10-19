@@ -38,11 +38,10 @@ void HMMTrainer::initialize() {
 
     for (auto&& pair : data_loader.stream_sequences_and_labels()) {
         // increment i first so modulo batch_size doesn't include the empty batch
-        if (batch_files.size() == max_batch_files) {
+        if (batch_files.size() == max_batch_files)
             batch_files[i % max_batch_files] = std::move(pair);
-        } else{
+        else
             batch_files.push_back(std::move(pair));
-        }
         ++i;
         
         size_t i_mod_max = i % max_batch_files;
@@ -60,13 +59,16 @@ void HMMTrainer::initialize() {
                 const std::vector<std::string>& labels = batch_pair.labels;
                 
                 local_accs[j].clear();
-                hmm.init_accumulate(sequence, labels, local_accs[j]);
+                try {
+                    hmm.init_accumulate(sequence, labels, local_accs[j]);
+                } catch (std::invalid_argument e) {
+                    log_error() << e.what();
+                }
             }
             
             // update global acc
-            for (j = 0; j < batch_size; ++j) {
+            for (j = 0; j < batch_size; ++j)
                 global_acc += local_accs[j];
-            }
         }
     }
 
@@ -91,11 +93,10 @@ void HMMTrainer::train_step() {
     log_debug() << "Init HMM: \n" << hmm;
     size_t i = 0;
     for (Sequence sequence : data_loader.stream_sequences()) {
-        if (batch_files.size() == max_batch_files) {
+        if (batch_files.size() == max_batch_files)
             batch_files[i % max_batch_files] = std::move(sequence);
-        } else {
+        else
             batch_files.push_back(std::move(sequence));
-        }
         ++i;
         
         size_t i_mod_max = i % max_batch_files;
@@ -114,9 +115,8 @@ void HMMTrainer::train_step() {
             }
             
             // update global acc
-            for (j = 0; j < batch_size; ++j) {
+            for (j = 0; j < batch_size; ++j)
                 global_acc += local_accs[j];
-            }
         }
     }
 

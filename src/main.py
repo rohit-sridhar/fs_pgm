@@ -127,8 +127,8 @@ def get_seeds(n):
 #   Clears TEST_DATA_DIR
 def setup_test_env():
     global TEST_DATA_DICT
-    if TEST_DATA_DIR.exists() and TEST_DATA_DIR.is_dir():
-        shutil.rmtree(TEST_DATA_DIR)
+    # if TEST_DATA_DIR.exists() and TEST_DATA_DIR.is_dir():
+    #     shutil.rmtree(TEST_DATA_DIR)
 
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
     

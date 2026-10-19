@@ -124,6 +124,11 @@ NB_MODULE(_pgm, m) {
             nb::arg("ignore_warnings") = false
         )
         .def("load_from_config", &HMM::load_from_config)
+        .def_prop_ro("start_priors", &HMM::get_start_priors)
+        .def_prop_ro("end_priors", &HMM::get_end_priors)
+        .def_prop_ro("transp", &HMM::get_transp)
+        .def_prop_ro("emissions", &HMM::get_emissions)
+        .def_prop_ro("labels", &HMM::get_labels)
         .def("__str__", [](const HMM& hmm) {
             std::stringstream ss;
             ss << hmm;

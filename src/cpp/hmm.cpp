@@ -65,7 +65,7 @@ void HMM::forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::Matri
     // scale alpha
     c(0) = 1.0 / alpha.col(0).sum();
     alpha.col(0) *= c(0);
-
+    
     for (size_t t = 1; t < alpha.cols(); ++t) {
         auto prev = transp.transpose() * alpha.col(t - 1);
         alpha.col(t) = B.col(t).array() * prev.array();

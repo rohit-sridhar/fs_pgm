@@ -15,6 +15,7 @@
 #include <unsupported/Eigen/CXX11/Tensor>
 
 #include <nanobind/eigen/dense.h>
+#include <nanobind/eigen/tensor.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/filesystem.h>
 #include <nanobind/stl/function.h>
@@ -41,13 +42,11 @@ NB_MODULE(_pgm, m) {
     cpp_logger_m.def("set_warning_logger", &utils::CppLogger::set_warning_cb);
     cpp_logger_m.def("set_error_logger", &utils::CppLogger::set_error_cb);
 
-    // set data loader module expositions
+    // set distributions module expositions
     nb::class_<Gaussian>(distributions_m, "Gaussian")
         .def(
-            nb::init<size_t, size_t, bool>(),
-            nb::arg("n_states"),
-            nb::arg("dim"),
-            nb::arg("diag") = false
+            nb::init<size_t>(),
+            nb::arg("n_states")
         )
         .def("__str__", [](const Gaussian& gaussian) {
             std::stringstream ss;
@@ -55,6 +54,27 @@ NB_MODULE(_pgm, m) {
             return ss.str();
         })
         .def("__repr__", [](const Gaussian& gaussian) {
+            std::stringstream ss;
+            ss << gaussian;
+            return ss.str();
+        });
+    
+    // set multi dimensional gaussians exposition
+    nb::class_<MultidimensionalGaussian>(distributions_m, "MultidimensionalGaussian")
+        .def(
+            nb::init<size_t, size_t, bool>(),
+            nb::arg("n_states"),
+            nb::arg("dim"),
+            nb::arg("diag")
+        )
+        .def("set_covs", &MultidimensionalGaussian::set_covs)
+        .def("pdf", &MultidimensionalGaussian::pdf)
+        .def("__str__", [](const MultidimensionalGaussian& gaussian) {
+            std::stringstream ss;
+            ss << gaussian;
+            return ss.str();
+        })
+        .def("__repr__", [](const MultidimensionalGaussian& gaussian) {
             std::stringstream ss;
             ss << gaussian;
             return ss.str();

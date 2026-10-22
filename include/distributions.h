@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/CXX11/Tensor>
 
 /*
  * Gaussian class
@@ -16,15 +17,37 @@
 class Gaussian {
 public:
     Gaussian(size_t n_states);
-    Gaussian(size_t n_states, size_t dim, bool diag);
-    Eigen::MatrixXd pdf(const Eigen::VectorXd& obs) const;
+    Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const;
+    
+    size_t n_states;
+    Eigen::VectorXd means;
+    Eigen::VectorXd std_devs;
+};
 
+/*
+ * MultdimensionalGaussian class def
+ */
+class MultidimensionalGaussian {
+public:
+    using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+    using TensorStrideMap = Eigen::Map<Eigen::MatrixXd, 0, DynamicStride>;
+    using ConstTensorStrideMap = Eigen::Map<const Eigen::MatrixXd, 0, DynamicStride>;
+    const Eigen::MatrixXd& means = priv_means;
+    const Eigen::Tensor<double, 3>& covs = priv_covs;
+    
+    MultidimensionalGaussian(size_t n_states, size_t dim, bool diag);
+    Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const;
+
+    void set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs);
+private:
     size_t n_states;
     size_t dim;
     bool diag;
-    Eigen::MatrixXd means;
-    Eigen::MatrixXd std_devs;
+    
+    Eigen::MatrixXd priv_means;
+    Eigen::Tensor<double, 3> priv_covs;
 };
 
 std::ostream& operator<<(std::ostream& os, const Gaussian& g);
+std::ostream& operator<<(std::ostream& os, const MultidimensionalGaussian& mg);
 

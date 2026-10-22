@@ -21,7 +21,7 @@ from importlib import resources
 from pgm.models import HMM
 from pgm.trainer import HMMTrainer
 from pgm.utils import cpp_logger
-from pgm.distributions import Gaussian
+from pgm.distributions import Gaussian, MultidimensionalGaussian
 from pgm.utils.data_loader import DataLoader
 
 from scipy.stats import norm
@@ -56,19 +56,6 @@ MIN_SEQ_SIZE = 50
 MEANS = [-30.0, -20.0, -10.0, 0.0, 10.0, 20.0, 30.0]
 VARS = [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
 
-# try:
-#     cpu_count = os.process_cpu_count()
-# except AttributeError:
-#     # Option 2: Fallback for Python 3.3 to 3.12 on Linux
-#     try:
-#         cpu_count = len(os.sched_getaffinity(0))
-#     except AttributeError:
-#         # Option 3: Fallback for macOS / Windows (returns system total)
-#         cpu_count = os.cpu_count()
-# 
-# print(str(cpu_count))
-# os.environ["OMP_NUM_THREADS"] = str(cpu_count)
-
 # logging setup logging basicConfig is set.
 # the cpp loggers are handed points to the logger info/debug/warning/error
 # functions
@@ -97,7 +84,10 @@ def get_model_name():
 # get the configuration file name given the hmm topology
 # and n_states. should be in the CONFIG dir
 def get_config_file():
-    return f"{args.hmm_topology}_{args.n_states}state"
+    config = f"{args.hmm_topology}_{args.n_states}state"
+    if args.hmm_topology == "composite":
+        config = f"{config}_{args.states_per_label}spl"
+    return config
 
 # get the save directory given the test data root dir.
 # TEST_DATA_DICT gives the root dir for each type of
@@ -122,13 +112,17 @@ def get_alphabet():
 def get_seeds(n):
     return random.sample(range(0, 10000), n)
 
+def get_true_n_states():
+    if args.hmm_topology == "composite":
+        return args.n_states * args.states_per_label
+    else:
+        return args.n_states
+
 # sets up test env:
 #   Loads the test data dict
 #   Clears TEST_DATA_DIR
 def setup_test_env():
     global TEST_DATA_DICT
-    # if TEST_DATA_DIR.exists() and TEST_DATA_DIR.is_dir():
-    #     shutil.rmtree(TEST_DATA_DIR)
 
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -243,8 +237,8 @@ def gen_dir_tests(test_set_seed):
 # run the hmm load dir tests.
 def hmm_load_dir_tests(test_set_seed):
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
-        n_states = args.n_states * 3 if args.hmm_topology == "composite" else args.n_states
         alphabet = get_alphabet()
+        n_states = get_true_n_states()
 
         hmm = HMM(
             n_states=n_states,
@@ -387,8 +381,15 @@ def gen_plots():
 
 # test out multivariate gaussian modeling
 def test_mv_gaussian():
-    g = Gaussian(args.n_states, 2)
-    print(g)
+    g = MultidimensionalGaussian(args.n_states, 3, False)
+    elems = list(range(args.n_states * 3**2))
+
+    covs = np.array(elems).reshape((args.n_states, 3, 3), order="C")
+    logger.info(covs)
+    # g.set_covs(covs)
+
+    logger.info(g)
+    g.pdf(np.array([[0, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]))
 
 # main function
 #   sets up logger and parses args

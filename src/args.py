@@ -19,21 +19,32 @@ import sys
 
 HMM_TOPOLOGIES=["bakis", "ergodic", "composite"]
 
-REQUIRED_BY = {
+REQUIRED_BY_TEST_TYPE = {
     "": {},
     "hmm-load-dir-test": {"hmm-topology", "n-states"},
     "gen-plots": {"hmm-topology", "n-states"},
     "test-mv-gaussian": {"n-states"},
 }
 
+REQUIRED_BY_HMM_TOPOLOGY = {
+    "": {},
+    "composite": {"states-per-label"},
+    "bakis": {},
+    "ergodic": {},
+}
+
 def is_required(arg):
     test_type = ""
+    hmm_topology = ""
     
     for i,opt in enumerate(sys.argv):
         if opt in ["-tt", "--test-type"]:
             test_type = sys.argv[i + 1]
+        if opt in ["-ht", "--hmm-topology"]:
+            hmm_topology = sys.argv[i + 1]
     
-    return arg in REQUIRED_BY[test_type]
+    return arg in REQUIRED_BY_TEST_TYPE[test_type] \
+        or arg in REQUIRED_BY_HMM_TOPOLOGY[hmm_topology]
 
 # takes args, defines a custom float range checking function based on 
 # the passed args and returns the function pointer
@@ -105,6 +116,12 @@ def parse_args():
         type=int,
         required=is_required("n-states"),
         help="n states in the hmm and for test generation.",
+    )
+    modeling_args.add_argument(
+        "-spl", "--states-per-label",
+        type=int,
+        required=is_required("states-per-label"),
+        help="states per label. used when using the composite hmm arch.",
     )
 
     # Test generation args

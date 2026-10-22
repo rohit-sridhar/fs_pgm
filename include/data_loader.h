@@ -42,19 +42,6 @@ struct SequenceAndLabel {
 };
 
 class DataLoader {
-private:
-    fs::path load_dir;
-    size_t num_files;
-    
-    std::unordered_map<fs::path, Eigen::MatrixXd> sequences;
-    std::unordered_map<fs::path, std::vector<std::string>> labels;
-    
-    size_t count_data_files() const;
-    void load_sequences_and_labels();
-    
-    std::vector<std::string> load_label_file(const fs::path& fpath) const;
-    Eigen::MatrixXd load_sequence_file(const fs::path& fpath) const;
-
 public:
     DataLoader(const fs::path& load_dir);
 
@@ -69,6 +56,18 @@ public:
     
     size_t get_num_files() const { return num_files; }
     const fs::path& get_load_dir() const { return load_dir; };
+private:
+    fs::path load_dir;
+    size_t num_files;
+    
+    std::unordered_map<fs::path, Eigen::MatrixXd> sequences;
+    std::unordered_map<fs::path, std::vector<std::string>> labels;
+    
+    size_t count_data_files() const;
+    void load_sequences_and_labels();
+    
+    std::vector<std::string> load_label_file(const fs::path& fpath) const;
+    Eigen::MatrixXd load_sequence_file(const fs::path& fpath) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const DataLoader& data_loader);

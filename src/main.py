@@ -5,7 +5,7 @@
 File: main.py
 Author: Rohit Sridhar
 Date: 01-09-2026
-Last Modified: 
+Last Modified:
 Version: X.X
 
 Description:
@@ -125,7 +125,7 @@ def setup_test_env():
     global TEST_DATA_DICT
 
     TEST_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     TEST_DATA_DICT[TEST_DATA_DIR / "standard"] = get_standard_seq_test
     TEST_DATA_DICT[TEST_DATA_DIR / "static"] = get_static_seq_test
 
@@ -158,7 +158,7 @@ def get_standard_seq_test(n_states, seed):
             if continue_prob < random.random():
                 break
             continue_prob *= args.step_prob
-        
+
     return seq, labs
 
 # get static seq test. generate sequences of values
@@ -168,24 +168,24 @@ def get_static_seq_test(n_states, seed):
     rng = np.random.default_rng(seed=seed)
     alphabet = get_alphabet()
     continue_prob = args.step_prob
-    
+
     seq = []
     labs = []
     prev_state = -1
-    
-    while True: 
+
+    while True:
         size = max(int(rng.normal(loc=args.step_n, scale=0.5)), 1)
         state = get_next_state(n_states, prev_state)
         prev_state = state
-        
+
         seq += [MEANS[state] for _ in range(size)]
         labs.append(alphabet[state])
-        
+
         if len(seq) > MIN_SEQ_SIZE:
             if continue_prob < random.random():
                 break
             continue_prob *= args.step_prob
-    
+
     return seq, labs
 
 # writes sequence generate from get_seq*_test
@@ -193,11 +193,11 @@ def get_static_seq_test(n_states, seed):
 def write_to_file(seq, labs, fname, dest_dir):
     dataext = DataLoader.DATAFILE_EXTENSION
     dfile = dest_dir / f"{fname}{dataext}"
-    
+
     with open(dfile, "w") as f:
         for elem in seq:
             f.write(f"{elem}\n")
-    
+
     labext = DataLoader.LABFILE_EXTENSION
     labfile = dest_dir / f"{fname}{labext}"
     with open(labfile, "w") as f:
@@ -214,21 +214,21 @@ def gen_dir_tests(test_set_seed):
     for i,test_data_dir in enumerate(TEST_DATA_DICT):
         write_dir = get_save_dir(test_data_dir, test_set_seed)
         write_dir.mkdir(parents=True, exist_ok=True)
-        
+
         seq_lens = []
         for seed in seeds:
             random.seed(seed)
             seq, labs = TEST_DATA_DICT[test_data_dir](args.n_states, seed)
-            
+
             fname = f"{i}_{seed}"
             seq_lens.append(len(seq))
-            
+
             write_to_file(seq, labs, fname, write_dir)
-        
+
         mean_seq_len = sum(seq_lens) / len(seq_lens)
         min_seq_len = min(seq_lens)
         max_seq_len = max(seq_lens)
-        
+
         logger.info(f"{write_dir=}")
         logger.info(f"{mean_seq_len=}")
         logger.info(f"{min_seq_len=}")
@@ -248,15 +248,15 @@ def hmm_load_dir_tests(test_set_seed):
         model_name = get_model_name()
         config_file = get_config_file()
         hmm.load_from_config(CONFIG / config_file)
-        
+
         write_dir = get_save_dir(test_data_dir, test_set_seed)
         with open(write_dir / model_name, "w") as f:
             f.write("Empty HMM\n")
             f.write(str(hmm))
-        
+
         data_loader = DataLoader(load_dir=write_dir)
         trainer = HMMTrainer(hmm, data_loader)
-        
+
         trainer.initialize()
         with open(write_dir / model_name, "a") as f:
             f.write("Initialized HMM\n")
@@ -268,7 +268,7 @@ def hmm_load_dir_tests(test_set_seed):
         with open(write_dir / model_name, "a") as f:
             f.write("Final HMM\n")
             f.write(str(hmm))
-        
+
         write_root = get_save_dir(test_data_dir)
         with open(write_root / "results.csv", "a") as f:
             f.write(str(hmm.emissions))
@@ -309,11 +309,11 @@ def get_emissions(hmm_file):
 def get_points(hmm_dir):
     points = []
     data_files = random.sample(list(hmm_dir.glob("*.dat")), k=5)
-    
+
     for data_file in data_files:
         with open(data_file, "r") as f:
             points += [float(f) for f in f.readlines()]
-    
+
     return points
 
 # plots emission pdf and data points that were trained on
@@ -349,7 +349,7 @@ def plot_emissions_and_points(emissions, points, fname):
     ax_top.set_ylabel("Density", fontsize=12)
     ax_top.legend(loc="upper right")
     ax_top.grid(axis='y', alpha=0.3)
-    
+
     # Plot the sample points as a normalized histogram
     ax_bottom.hist(points, density=True, alpha=0.4, color="gray", label="Sampled Points")
     ax_bottom.set_title("Empirical Data Sample Counts", fontsize=14)
@@ -358,7 +358,7 @@ def plot_emissions_and_points(emissions, points, fname):
     ax_bottom.legend(loc="upper right")
     ax_bottom.grid(axis='y', alpha=0.3)
 
- 
+
     plt.savefig(fname, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -371,43 +371,48 @@ def gen_plots():
     for test_data_dir in TEST_DATA_DICT:
         hmm_dir = get_save_dir(test_data_dir, -1)
         logger.info(f"inspecting: {hmm_dir}")
-        
+
         model_name = get_model_name()
         emissions = get_emissions(hmm_dir / model_name)
         points = get_points(hmm_dir)
-        
+
         png_name = (hmm_dir / model_name).with_suffix(".png")
         plot_emissions_and_points(emissions, points, png_name)
 
 # test out multivariate gaussian modeling
 def test_mv_gaussian():
     g = MultidimensionalGaussian(args.n_states, 3, False)
-    elems = list(range(args.n_states * 3**2))
 
-    covs = np.array(elems).reshape((args.n_states, 3, 3), order="C")
-    logger.info(covs)
+    # covs = np.array(elems).reshape((args.n_states, 3, 3)) / max(elems)
+    # logger.info(covs)
     # g.set_covs(covs)
 
     logger.info(g)
-    g.pdf(np.array([[0, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]))
+    print()
+    print("Multidimensional Probabilities: ")
+    print(g.pdf(np.array([[0, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]) / 12))
+    print()
 
 # main function
 #   sets up logger and parses args
-#   
+#
 #   if calling load-dir-test, loads test data dict (sets paths
 #   and function pointers for data generation) and then runs
 #   hmm_load_dir_tests.
 def main():
     global args
-    
+
     args = parse_args()
+    logger.info(args)
+
     random.seed(args.seed)
     setup_logger()
+
     if args.spread:
         global MEANS
         MEANS = [3 * mean for mean in MEANS]
         logger.info(f"Updated means due to spread=True: {MEANS}")
-    
+
     if args.test_type == "hmm-load-dir-test":
         global MIN_SEQ_SIZE
         MIN_SEQ_SIZE = args.n_states * args.step_n

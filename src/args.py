@@ -36,17 +36,22 @@ REQUIRED_BY_HMM_TOPOLOGY = {
 def is_required(arg):
     test_type = ""
     hmm_topology = ""
-    
+
     for i,opt in enumerate(sys.argv):
         if opt in ["-tt", "--test-type"]:
+            if i >= len(sys.argv) - 1 or sys.argv[i + 1].startswith("-"):
+                raise argparse.ArgumentTypeError("arg test-type requires a value.")
+
             test_type = sys.argv[i + 1]
         if opt in ["-ht", "--hmm-topology"]:
+            if i >= len(sys.argv) - 1 or sys.argv[i + 1].startswith("-"):
+                raise argparse.ArgumentTypeError("arg hmm-topology requires a value.")
             hmm_topology = sys.argv[i + 1]
-    
+
     return arg in REQUIRED_BY_TEST_TYPE[test_type] \
         or arg in REQUIRED_BY_HMM_TOPOLOGY[hmm_topology]
 
-# takes args, defines a custom float range checking function based on 
+# takes args, defines a custom float range checking function based on
 # the passed args and returns the function pointer
 def float_range(min_val, max_val, incl_lower=False, incl_upper=False):
     """Return a function that validates a float within a specific range."""

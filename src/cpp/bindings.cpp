@@ -138,10 +138,9 @@ NB_MODULE(_pgm, m) {
     // set hmm model module expositions
     nb::class_<HMM>(models_m, "HMM")
         .def(
-            nb::init<size_t, std::vector<std::string>&, bool>(),
+            nb::init<size_t, std::vector<std::string>&>(),
             nb::arg("n_states"),
-            nb::arg("label_set"),
-            nb::arg("ignore_warnings") = false
+            nb::arg("label_set")
         )
         .def("load_from_config", &HMM::load_from_config)
         .def_prop_ro("start_priors", &HMM::get_start_priors)

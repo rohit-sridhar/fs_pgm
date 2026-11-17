@@ -98,7 +98,7 @@ struct HMMBaumWelchAccumulator {
 
 class HMM {
 public:
-    HMM(size_t n_states, std::vector<std::string>& labels, bool ignore_warnings);
+    HMM(size_t n_states, std::vector<std::string>& labels);
 
     // EigenRef declarations for zero copy references
     using Refd = Eigen::Ref<Eigen::MatrixXd, 0, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;

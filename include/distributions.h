@@ -29,23 +29,31 @@ public:
  */
 class MultidimensionalGaussian {
 public:
+    MultidimensionalGaussian(size_t n_states, size_t dim, bool diag);
+    
     using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
     using TensorStrideMap = Eigen::Map<Eigen::MatrixXd, 0, DynamicStride>;
     using ConstTensorStrideMap = Eigen::Map<const Eigen::MatrixXd, 0, DynamicStride>;
+    
     const Eigen::MatrixXd& means = priv_means;
     const Eigen::Tensor<double, 3>& covs = priv_covs;
     
-    MultidimensionalGaussian(size_t n_states, size_t dim, bool diag);
     Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const;
-
     void set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs);
+    
+    size_t get_n_states() const { return n_states; };
+    size_t get_dim() const { return dim; };
 private:
     size_t n_states;
     size_t dim;
     bool diag;
     
+    DynamicStride cov_stride;
     Eigen::MatrixXd priv_means;
     Eigen::Tensor<double, 3> priv_covs;
+
+    // returns standard col major stride for mv cov matrix
+    // DynamicStride get_cov_stride() const { return DynamicStride(n_states * dim, n_states); };
 };
 
 std::ostream& operator<<(std::ostream& os, const Gaussian& g);

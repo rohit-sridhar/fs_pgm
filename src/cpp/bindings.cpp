@@ -42,39 +42,39 @@ NB_MODULE(_pgm, m) {
     cpp_logger_m.def("set_warning_logger", &utils::CppLogger::set_warning_cb);
     cpp_logger_m.def("set_error_logger", &utils::CppLogger::set_error_cb);
 
+    nb::class_<Gaussian>(m, "Gaussian")
+        .def("__str__", &Gaussian::to_string)
+        .def("__repr__", &Gaussian::to_string);
+
     // set distributions module expositions
-    nb::class_<Gaussian>(distributions_m, "Gaussian")
+    nb::class_<SingleDimensionalGaussian, Gaussian>(distributions_m, "SingleDimensionalGaussian")
         .def(
             nb::init<size_t>(),
             nb::arg("n_states")
         )
         .def("__str__", [](const Gaussian& gaussian) {
-            std::stringstream ss;
-            ss << gaussian;
-            return ss.str();
+            return gaussian.to_string();
         })
         .def("__repr__", [](const Gaussian& gaussian) {
-            std::stringstream ss;
-            ss << gaussian;
-            return ss.str();
+            return gaussian.to_string();
         });
     
     // set multi dimensional gaussians exposition
-    nb::class_<MultidimensionalGaussian>(distributions_m, "MultidimensionalGaussian")
+    nb::class_<MultiDimensionalGaussian>(distributions_m, "MultiDimensionalGaussian")
         .def(
             nb::init<size_t, size_t, bool>(),
             nb::arg("n_states"),
             nb::arg("dim"),
             nb::arg("diag")
         )
-        .def("set_covs", &MultidimensionalGaussian::set_covs)
-        .def("pdf", &MultidimensionalGaussian::pdf)
-        .def("__str__", [](const MultidimensionalGaussian& gaussian) {
+        .def("set_covs", &MultiDimensionalGaussian::set_covs)
+        .def("pdf", &MultiDimensionalGaussian::pdf)
+        .def("__str__", [](const MultiDimensionalGaussian& gaussian) {
             std::stringstream ss;
             ss << gaussian;
             return ss.str();
         })
-        .def("__repr__", [](const MultidimensionalGaussian& gaussian) {
+        .def("__repr__", [](const MultiDimensionalGaussian& gaussian) {
             std::stringstream ss;
             ss << gaussian;
             return ss.str();
@@ -143,11 +143,11 @@ NB_MODULE(_pgm, m) {
             nb::arg("label_set")
         )
         .def("load_from_config", &HMM::load_from_config)
-        .def_prop_ro("start_priors", &HMM::get_start_priors)
-        .def_prop_ro("end_priors", &HMM::get_end_priors)
-        .def_prop_ro("transp", &HMM::get_transp)
-        .def_prop_ro("emissions", &HMM::get_emissions)
-        .def_prop_ro("labels", &HMM::get_labels)
+        .def_prop_ro("start_priors", &HMM::get_start_priors, nb::rv_policy::reference_internal)
+        .def_prop_ro("end_priors", &HMM::get_end_priors, nb::rv_policy::reference_internal)
+        .def_prop_ro("transp", &HMM::get_transp, nb::rv_policy::reference_internal)
+        .def_prop_ro("emissions", &HMM::get_emissions, nb::rv_policy::reference_internal)
+        .def_prop_ro("labels", &HMM::get_labels, nb::rv_policy::reference_internal)
         .def("__str__", [](const HMM& hmm) {
             std::stringstream ss;
             ss << hmm;

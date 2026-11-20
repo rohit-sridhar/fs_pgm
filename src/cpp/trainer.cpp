@@ -35,7 +35,7 @@ void HMMTrainer::initialize() {
     // Useful vectors containing batch and accumulators
     std::vector<SequenceAndLabel> batch_files;
     std::vector<HMMInitAccumulator> local_accs(max_batch_files, HMMInitAccumulator(n_states));
-
+    
     for (auto&& pair : data_loader.stream_sequences_and_labels()) {
         // increment i first so modulo batch_size doesn't include the empty batch
         if (batch_files.size() == max_batch_files)

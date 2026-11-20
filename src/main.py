@@ -21,7 +21,7 @@ from importlib import resources
 from pgm.models import HMM
 from pgm.trainer import HMMTrainer
 from pgm.utils import cpp_logger
-from pgm.distributions import Gaussian, MultidimensionalGaussian
+from pgm.distributions import SingleDimensionalGaussian, MultiDimensionalGaussian
 from pgm.utils.data_loader import DataLoader
 
 from scipy.stats import norm
@@ -243,7 +243,7 @@ def hmm_load_dir_tests(test_set_seed):
         hmm = HMM(
             n_states=n_states,
             label_set=tuple(alphabet),
-            ignore_warnings=args.ignore_warnings
+            # ignore_warnings=args.ignore_warnings
         )
         model_name = get_model_name()
         config_file = get_config_file()
@@ -275,7 +275,7 @@ def hmm_load_dir_tests(test_set_seed):
             f.write("\n")
 
 # get emissions probabilities from the hmm files
-def get_emissions(hmm_file):
+def get_emissions_from_file(hmm_file):
     if not hmm_file.exists():
         raise ValueError("HMM File does not exist. Exiting.")
 
@@ -373,7 +373,7 @@ def gen_plots():
         logger.info(f"inspecting: {hmm_dir}")
 
         model_name = get_model_name()
-        emissions = get_emissions(hmm_dir / model_name)
+        emissions = get_emissions_from_file(hmm_dir / model_name)
         points = get_points(hmm_dir)
 
         png_name = (hmm_dir / model_name).with_suffix(".png")

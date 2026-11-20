@@ -4,6 +4,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <cmath>
 #include <vector>
 #include <string>
@@ -11,8 +12,80 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
+/******************** Base Gaussian ********************/
+// The base class constructor does nothing but set n_states
+Gaussian::Gaussian(size_t n_states, size_t dim) : n_states_(n_states), dim_(dim) {
+    means_ = Eigen::MatrixXd::Zero(n_states_, dim_);
+}
+
+// overload output stream operator to print params of gaussian
+std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
+    os << g.to_string();
+    return os;
+}
+
+
+/******************** Single Dimensional Gaussian ********************/
+
+/*
+ * SingleDimensionalGaussian Constructor
+ *
+ * This constructor initializes zero vectors for means
+ * and std devs based on the number of states in the HMM.
+ */
+SingleDimensionalGaussian::SingleDimensionalGaussian(size_t n_states) : Gaussian(n_states, 1) {
+    set_std_devs(Eigen::VectorXd::Ones(n_states));
+}
+
+void SingleDimensionalGaussian::set_means(const Eigen::VectorXd& means) {
+    if (means.size() != get_n_states())
+        throw std::invalid_argument("error setting means: first dim must be n_states. last dim must be 1.");
+    
+    means_ = means;
+}
+
+void SingleDimensionalGaussian::set_std_devs(const Eigen::VectorXd& std_devs) {
+    if (std_devs.size() != get_n_states())
+        throw std::invalid_argument("error setting std devs: first dim must be n_states. last dim must be 1.");
+    
+    std_devs_ = std_devs;
+}
+
+/*
+ * pdf (vectorized)
+ * 
+ * Vectorized computations of 1d normal distribution over grid of multiple
+ * observations and each mean/std dev pair.
+ *
+ * Input X should be a column vector of length T.
+ */
+Eigen::MatrixXd SingleDimensionalGaussian::pdf(const Eigen::VectorXd& X) const {
+    double scalar_numerator = 1.0 / std::sqrt(2.0 * M_PI);
+    auto inv_std_devs = scalar_numerator / std_devs_.array();
+    
+    auto coefficients = inv_std_devs.replicate(1, X.size());
+    auto variances = std_devs_.array().square().replicate(1, X.size());
+    auto means_mat = means_.replicate(1, X.size());
+    
+    auto diff = means_mat.rowwise() - X.transpose();
+    auto exponents_top = -(diff.array().square());
+    auto exponents_bottom = 2.0 * variances;
+    auto exponents = exponents_top.array() / exponents_bottom.array();
+    
+    Eigen::MatrixXd pdf = coefficients.array() * exponents.array().exp();
+    return pdf;
+}
+
+std::string SingleDimensionalGaussian::to_string() const {
+    std::ostringstream oss;
+    oss << "means: \n\n"<< means_;
+    oss << "\n\nstd devs (Col Major): \n\n" << std_devs_;
+    return oss.str();
+    
+}
+
 /******************** Multi Dimensional Gaussian ********************/
-MultidimensionalGaussian::MultidimensionalGaussian(
+MultiDimensionalGaussian::MultiDimensionalGaussian(
     size_t n_states,
     size_t dim,
     bool diag
@@ -39,11 +112,11 @@ MultidimensionalGaussian::MultidimensionalGaussian(
 }
 
 /*
- * Computes PDF of Multidimensional Gaussian
+ * Computes PDF of MultiDimensional Gaussian
  *  X should be a matrix of size T x D
  *  return value is T x N
  */
-Eigen::MatrixXd MultidimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
+Eigen::MatrixXd MultiDimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
     using namespace Eigen;
     
     MatrixXd probs(n_states, X.rows());
@@ -72,7 +145,7 @@ Eigen::MatrixXd MultidimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
 /*
  *  set the covariance matrix
  */
-void MultidimensionalGaussian::set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs) {
+void MultiDimensionalGaussian::set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs) {
     const auto& dims = covs.dimensions();
     
     if (dims[0] != n_states || dims[1] != dim || dims[2] != dim)
@@ -82,7 +155,7 @@ void MultidimensionalGaussian::set_covs(const Eigen::Tensor<double, 3, Eigen::Co
 }
 
 // overload output stream operator to print params of gaussian
-std::ostream& operator<<(std::ostream& os, const MultidimensionalGaussian& mg) {
+std::ostream& operator<<(std::ostream& os, const MultiDimensionalGaussian& mg) {
     os << "means: \n\n"<< mg.means;
     os << "\n\nCov (Col Major): \n\n";
     
@@ -90,51 +163,6 @@ std::ostream& operator<<(std::ostream& os, const MultidimensionalGaussian& mg) {
         os << mg.covs.chip(i, 0) << "\n\n";
     }
     
-    return os;
-}
-
-/******************** Single Dimensional Gaussian ********************/
-
-/*
- * Gaussian Constructor
- *
- * This constructor initializes zero vectors for means
- * and std devs based on the number of states in the HMM.
- */
-Gaussian::Gaussian(size_t n_states) : n_states(n_states) {
-    means = Eigen::VectorXd::Zero(n_states);
-    std_devs = Eigen::VectorXd::Ones(n_states);
-}
-
-/*
- * pdf (vectorized)
- * 
- * Vectorized computations of 1d normal distribution over grid of multiple
- * observations and each mean/std dev pair.
- *
- * Input X should be a column vector of length T.
- */
-Eigen::MatrixXd Gaussian::pdf(const Eigen::VectorXd& X) const {
-    double scalar_numerator = 1.0 / std::sqrt(2.0 * M_PI);
-    auto inv_std_devs = scalar_numerator / std_devs.array();
-    
-    auto coefficients = inv_std_devs.replicate(1, X.size());
-    auto variances = std_devs.array().square().replicate(1, X.size());
-    auto means_mat = means.replicate(1, X.size());
-    
-    auto diff = means_mat.rowwise() - X.transpose();
-    auto exponents_top = -(diff.array().square());
-    auto exponents_bottom = 2.0 * variances;
-    auto exponents = exponents_top.array() / exponents_bottom.array();
-    
-    Eigen::MatrixXd pdf = coefficients.array() * exponents.array().exp();
-    return pdf;
-}
-
-// overload output stream operator to print params of gaussian
-std::ostream& operator<<(std::ostream& os, const Gaussian& g) {
-    os << "means: \n\n"<< g.means;
-    os << "\n\nstd devs (Col Major): \n\n" << g.std_devs;
     return os;
 }
 

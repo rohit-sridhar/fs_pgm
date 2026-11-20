@@ -19,7 +19,7 @@
  * len(labels)). Then sets states per label to the positive int states_per_label. Finally,
  * sets the reverse map (label -> index) from the forward map, label_vec (index -> label).
  */
-HMM::HMM(
+HMM::HMM (
     size_t n_states,
     std::vector<std::string>& labels
     // bool ignore_warnings
@@ -257,6 +257,7 @@ void HMM::load_from_config(fs::path config_file) {
  * The user should call init_reset_accumulators before calling
  * this function.
  */
+//TODO CHANGES BY SUBCLASS
 void HMM::init_accumulate(
     const Eigen::VectorXd& obs,
     const std::vector<std::string>& labels,
@@ -304,10 +305,11 @@ void HMM::init_accumulate(
 /*
  * Updates emissions mean and std dev params.
  */
+//TODO CHANGES BY SUBCLASS
 void HMM::init_summarize(HMMInitAccumulator& acc) {
     auto& acc_obs_count_dbl = acc.obs_count.cast<double>();
-    emissions.means = acc.means.array() / acc_obs_count_dbl.array();
-    emissions.std_devs = (acc.std_devs.array() / acc_obs_count_dbl.array()).array().sqrt();
+    emissions.set_means(acc.means.array() / acc_obs_count_dbl.array());
+    emissions.set_std_devs((acc.std_devs.array() / acc_obs_count_dbl.array()).array().sqrt());
 }
 
 /*
@@ -345,6 +347,7 @@ void HMM::baum_welch_accumulate(
  * data. This step fills in params after an entire batch
  * has been accumulated.
  */
+//TODO CHANGES BY SUBCLASS
 void HMM::baum_welch_summarize(
     HMMBaumWelchAccumulator& acc
 ) {
@@ -356,10 +359,10 @@ void HMM::baum_welch_summarize(
     VectorXd transp_norm = (acc.gamma.array() - acc.end_priors.array()).cwiseMax(HMM::FLOOR_VAL);
     transp = acc.xi.array().colwise() / transp_norm.array();
     
-    emissions.means = acc.obs.array() / acc.gamma.array();
-    VectorXd variances = (acc.obs_sq.array() / acc.gamma.array()) - emissions.means.array().square();
+    emissions.set_means(acc.obs.array() / acc.gamma.array());
+    VectorXd variances = (acc.obs_sq.array() / acc.gamma.array()) - emissions.get_means().array().square();
     log_debug() << "variances \n" << variances.cwiseMax(HMM::FLOOR_VAL);
-    emissions.std_devs = variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt();
+    emissions.set_std_devs(variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt());
 }
 
 // overload ostream for clean print

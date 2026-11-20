@@ -125,6 +125,8 @@ public:
     // void init_reset_accumulators();
     void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const;
     void init_summarize(HMMInitAccumulator& acc);
+    // virtual void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const = 0;
+    // virtual void init_summarize(HMMInitAccumulator& acc) = 0;
     
     // baum welch and public helpers
     // First, baum_welch_reset_accumulators should be called.
@@ -135,6 +137,7 @@ public:
     // void baum_welch_reset_accumulators();
     void baum_welch_accumulate(const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
     void baum_welch_summarize(HMMBaumWelchAccumulator& acc);
+    // virtual void baum_welch_summarize(HMMBaumWelchAccumulator& acc) = 0;
     
     // getters
     size_t get_n_states() const { return n_states; };
@@ -157,7 +160,7 @@ private:
     Eigen::VectorXd start_priors;
     Eigen::VectorXd end_priors;
     Eigen::MatrixXd transp;
-    Gaussian emissions;
+    SingleDimensionalGaussian emissions;
     
     void forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
     void backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
@@ -167,6 +170,13 @@ private:
     
     void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;    
 };
+
+// class HMMSingleGaussian : public HMM {
+// //     public:
+// //         void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const override;
+// //         void init_summarize(HMMInitAccumulator& acc) override;
+// //         virtual void baum_welch_summarize(HMMBaumWelchAccumulator& acc) override;
+// };
 
 std::ostream& operator<<(std::ostream& os, const HMM& hmm);
 

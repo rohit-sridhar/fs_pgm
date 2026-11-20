@@ -1,11 +1,36 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
+class Gaussian {
+public:
+    virtual ~Gaussian() = default;
+    Gaussian(size_t n_states, size_t dim);
+
+    virtual Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const = 0;
+     
+    // shared getters
+    const Eigen::MatrixXd& get_means() const { return means_; };
+    size_t get_n_states() const { return n_states_; };
+    size_t get_dim() const { return dim_; };
+
+    // admin functions
+    virtual std::string to_string() const = 0;
+
+protected:
+    Eigen::MatrixXd means_;
+    
+private:
+    const size_t n_states_;
+    const size_t dim_;
+
+};
+
 /*
- * Gaussian class
+ * SingleDimensionalGaussian class
  *
  * A class for modeling gaussians. Stores means and std devs
  * as Eigen::Vectors and does Vectorized pdf computations for
@@ -14,22 +39,31 @@
  * Overrides stream << operator to print the mean and std dev
  * Eigen::Vectors out.
  */
-class Gaussian {
+class SingleDimensionalGaussian : public Gaussian {
 public:
-    Gaussian(size_t n_states);
-    Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const;
+    SingleDimensionalGaussian(size_t n_states);
+    Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const override;
     
-    size_t n_states;
-    Eigen::VectorXd means;
-    Eigen::VectorXd std_devs;
+    // additional setters (define in cpp file since they do validation)
+    void set_means(const Eigen::VectorXd& means);
+    void set_std_devs(const Eigen::VectorXd& std_devs);
+
+    // additional getters
+    const Eigen::VectorXd& get_std_devs() const { return std_devs_; };
+
+    // admin functions
+    std::string to_string() const override;
+
+protected:
+    Eigen::VectorXd std_devs_;
 };
 
 /*
- * MultdimensionalGaussian class def
+ * MultiDimensionalGaussian class def
  */
-class MultidimensionalGaussian {
+class MultiDimensionalGaussian {
 public:
-    MultidimensionalGaussian(size_t n_states, size_t dim, bool diag);
+    MultiDimensionalGaussian(size_t n_states, size_t dim, bool diag);
     
     using DynamicStride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
     using TensorStrideMap = Eigen::Map<Eigen::MatrixXd, 0, DynamicStride>;
@@ -57,5 +91,5 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const Gaussian& g);
-std::ostream& operator<<(std::ostream& os, const MultidimensionalGaussian& mg);
+std::ostream& operator<<(std::ostream& os, const MultiDimensionalGaussian& mg);
 

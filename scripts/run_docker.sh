@@ -36,6 +36,7 @@ fingerspelling_video_path="${FINGERSPELLING_VIDEO_PATH:-${PROJECTS_ROOT}/sign_la
 islr_mputils_out_path="${ISLR_MPUTILS_OUT_PATH:-${PROJECTS_ROOT}/deep_learning/ISLR-ML/mputils/out}"
 vimrc_dir="${VIM_DIR:-${HOME}/.vim}"
 vimrc_file="${MYVIMRC:-${HOME}/.vimrc}"
+gitconfig_file="${GIT_CONFIG_GLOBAL:-${HOME}/.gitconfig}"
 
 case "$cmd" in
     ils)
@@ -69,6 +70,7 @@ case "$cmd" in
           -v "${fingerspelling_video_path}":"/data/sign_language_videos/fingerspelling_videos:ro" \
           -v "${vimrc_dir}":"/root/.vim" \
           -v "${vimrc_file}":"/root/.vimrc" \
+          -v "${gitconfig_file}":"/root/.gitconfig" \
           -e HOSTNAME_SERVER="$HOSTNAME" \
           --name "$container" "$LOCAL_HTK_IMAGE"
         ;;

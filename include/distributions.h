@@ -9,24 +9,23 @@ class Gaussian {
 public:
     virtual ~Gaussian() = default;
     Gaussian(size_t n_states, size_t dim);
-
-    virtual Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const = 0;
-     
+    
+    virtual Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const = 0;
+    
     // shared getters
     const Eigen::MatrixXd& get_means() const { return means_; };
     size_t get_n_states() const { return n_states_; };
     size_t get_dim() const { return dim_; };
-
+    
     // admin functions
     virtual std::string to_string() const = 0;
-
+    
 protected:
     Eigen::MatrixXd means_;
     
 private:
     const size_t n_states_;
     const size_t dim_;
-
 };
 
 /*
@@ -42,7 +41,7 @@ private:
 class SingleDimensionalGaussian : public Gaussian {
 public:
     SingleDimensionalGaussian(size_t n_states);
-    Eigen::MatrixXd pdf(const Eigen::VectorXd& X) const override;
+    Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const override;
     
     // additional setters (define in cpp file since they do validation)
     void set_means(const Eigen::VectorXd& means);
@@ -61,7 +60,7 @@ protected:
 /*
  * MultiDimensionalGaussian class def
  */
-class MultiDimensionalGaussian {
+class MultiDimensionalGaussian : public Gaussian {
 public:
     MultiDimensionalGaussian(size_t n_states, size_t dim, bool diag);
     
@@ -69,27 +68,29 @@ public:
     using TensorStrideMap = Eigen::Map<Eigen::MatrixXd, 0, DynamicStride>;
     using ConstTensorStrideMap = Eigen::Map<const Eigen::MatrixXd, 0, DynamicStride>;
     
-    const Eigen::MatrixXd& means = priv_means;
-    const Eigen::Tensor<double, 3>& covs = priv_covs;
+    Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const override;
     
-    Eigen::MatrixXd pdf(const Eigen::MatrixXd& X) const;
+    // additional setters
     void set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs);
     
-    size_t get_n_states() const { return n_states; };
-    size_t get_dim() const { return dim; };
-private:
-    size_t n_states;
-    size_t dim;
-    bool diag;
+    // additional getters
+    const Eigen::Tensor<double, 3>& get_covs() const { return covs_; };
+    bool is_diag() const { return diag_; };
     
-    DynamicStride cov_stride;
-    Eigen::MatrixXd priv_means;
-    Eigen::Tensor<double, 3> priv_covs;
-
+    // admin functions
+    std::string to_string() const override;
+    
+protected:
+    Eigen::Tensor<double, 3> covs_;
+    
+private:
+    bool diag_;
+    
+    DynamicStride cov_stride_;
+    
+    void init_covs_();
     // returns standard col major stride for mv cov matrix
-    // DynamicStride get_cov_stride() const { return DynamicStride(n_states * dim, n_states); };
 };
 
 std::ostream& operator<<(std::ostream& os, const Gaussian& g);
-std::ostream& operator<<(std::ostream& os, const MultiDimensionalGaussian& mg);
 

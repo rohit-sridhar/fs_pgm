@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <random>
 #include <cmath>
 #include <vector>
 #include <string>
@@ -59,15 +60,21 @@ void SingleDimensionalGaussian::set_std_devs(const Eigen::VectorXd& std_devs) {
  *
  * Input X should be a column vector of length T.
  */
-Eigen::MatrixXd SingleDimensionalGaussian::pdf(const Eigen::VectorXd& X) const {
+Eigen::MatrixXd SingleDimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
+    if (X.cols() != 1) {
+        std::string error_msg = "error. data passed to function must have 1 dims.";
+        throw std::invalid_argument(error_msg);
+    }
+
+    auto X_vec = X.col(0);
     double scalar_numerator = 1.0 / std::sqrt(2.0 * M_PI);
     auto inv_std_devs = scalar_numerator / std_devs_.array();
     
-    auto coefficients = inv_std_devs.replicate(1, X.size());
-    auto variances = std_devs_.array().square().replicate(1, X.size());
-    auto means_mat = means_.replicate(1, X.size());
+    auto coefficients = inv_std_devs.replicate(1, X_vec.size());
+    auto variances = std_devs_.array().square().replicate(1, X_vec.size());
+    auto means_mat = means_.replicate(1, X_vec.size());
     
-    auto diff = means_mat.rowwise() - X.transpose();
+    auto diff = means_mat.rowwise() - X_vec.transpose();
     auto exponents_top = -(diff.array().square());
     auto exponents_bottom = 2.0 * variances;
     auto exponents = exponents_top.array() / exponents_bottom.array();
@@ -89,28 +96,30 @@ MultiDimensionalGaussian::MultiDimensionalGaussian(
     size_t n_states,
     size_t dim,
     bool diag
-) : n_states(n_states), dim(dim), diag(diag), cov_stride(n_states * dim, dim) {
-    priv_means = Eigen::MatrixXd::Zero(n_states, dim);
-    priv_covs = Eigen::Tensor<double, 3>(n_states, dim, dim); 
+) : Gaussian(n_states, dim), diag_(diag), cov_stride_(n_states, n_states * dim) {
+    means_ = Eigen::MatrixXd::Zero(n_states, dim);
+    init_covs_();
+}
+
+/******************** Private Multi Dimensional Gaussian ********************/
+void MultiDimensionalGaussian::init_covs_() {
+    size_t n_states = get_n_states();
+    size_t dim = get_dim();
+    
+    covs_ = Eigen::Tensor<double, 3>(n_states, dim, dim);
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
     for (size_t i = 0; i < n_states; ++i) {
-        TensorStrideMap cov(&priv_covs(i,0,0), dim, dim, cov_stride);
-        // For now, dim is assumed to be 3 regardless of what is passed.
-        if (i == 0)
-            cov <<  1.5, 0.5, 0.0,
-                    0.5, 1.5, 0.5,
-                    0.0, 0.5, 1.5;
-        else if (i == 1)
-            cov <<  1.5, 0.0, 0.5,
-                    0.0, 1.5, 0.0,
-                    0.5, 0.0, 1.5;
-        else
-            cov <<  1.5, 0.5, 0.5,
-                    0.5, 1.5, 0.0,
-                    0.5, 0.0, 1.5;
+        TensorStrideMap cov(&covs_(i,0,0), dim, dim, cov_stride_);
+        cov = 1.0 + ((Eigen::MatrixXd::Random(dim, dim).array() + 1.0) * 0.5);
+        cov = cov.triangularView<Eigen::Lower>();
+        cov = cov.transpose() * cov;
+        log_debug() << "Cov " << i << ": " << cov << "\n";
+        log_debug() << "Covs_ (chipped) " << i << ": " << covs_.chip(i,0) << "\n";
     }
 }
 
+/******************** Public Multi Dimensional Gaussian ********************/
 /*
  * Computes PDF of MultiDimensional Gaussian
  *  X should be a matrix of size T x D
@@ -118,13 +127,23 @@ MultiDimensionalGaussian::MultiDimensionalGaussian(
  */
 Eigen::MatrixXd MultiDimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
     using namespace Eigen;
+    size_t n_states = get_n_states();
+    size_t dim = get_dim();
     
+    if (X.cols() != dim) {
+        std::string error_msg = std::format("error. data passed to function must have {} dims.", dim);
+        throw std::invalid_argument(error_msg);
+    }
+    
+    log_debug() << "X (Shape): (" << X.rows() << ", " << X.cols() << ")";
     MatrixXd probs(n_states, X.rows());
+    log_debug() << "Probs (Shape): (" << probs.rows() << ", " << probs.cols() << ")";
+
     for(size_t i = 0; i < n_states; ++i) {
         // Get i-th state cov matrix and i-th state means
-        auto means = priv_means.row(i);
+        auto means = means_.row(i);
         
-        ConstTensorStrideMap cov(&priv_covs(i,0,0), dim, dim, cov_stride);
+        ConstTensorStrideMap cov(&covs_(i,0,0), dim, dim, cov_stride_);
         LLT<MatrixXd> llt(cov);
         if (llt.info() != Success) {
             std::string error_msg = std::format("Cov matrix for state {} is not invertible.", i);
@@ -134,9 +153,9 @@ Eigen::MatrixXd MultiDimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
         auto diffs = X - means.replicate(X.rows(), 1);
         auto diffs_cov = diffs * llt.solve(MatrixXd::Identity(dim, dim));
         auto exponent = (diffs_cov.array() * diffs.array()).rowwise().sum();
-        
+
         double scalar = 1.0 / (std::pow(2.0 * M_PI, dim / 2.0) * std::sqrt(cov.determinant()));
-        probs.row(i) = exponent.array() * scalar;
+        probs.row(i) = exponent.transpose().array() * scalar;
     }
     
     return probs;
@@ -147,22 +166,24 @@ Eigen::MatrixXd MultiDimensionalGaussian::pdf(const Eigen::MatrixXd& X) const {
  */
 void MultiDimensionalGaussian::set_covs(const Eigen::Tensor<double, 3, Eigen::ColMajor>& covs) {
     const auto& dims = covs.dimensions();
+    size_t dim = get_dim();
     
-    if (dims[0] != n_states || dims[1] != dim || dims[2] != dim)
+    if (dims[0] != get_n_states() || dims[1] != dim || dims[2] != dim)
         throw std::invalid_argument("first dim must be n_states. last 2 dims must be size dim.");
     
-    priv_covs = covs;
+    covs_ = covs;
 }
 
 // overload output stream operator to print params of gaussian
-std::ostream& operator<<(std::ostream& os, const MultiDimensionalGaussian& mg) {
-    os << "means: \n\n"<< mg.means;
-    os << "\n\nCov (Col Major): \n\n";
+std::string MultiDimensionalGaussian::to_string() const {
+    std::ostringstream oss;
+    oss << "means: \n\n"<< means_;
+    oss << "\n\nCov (Col Major): \n\n";
     
-    for(size_t i = 0; i < mg.get_n_states(); ++i) {
-        os << mg.covs.chip(i, 0) << "\n\n";
+    for(size_t i = 0; i < get_n_states(); ++i) {
+        oss << covs_.chip(i, 0) << "\n\n";
     }
     
-    return os;
+    return oss.str();
 }
 

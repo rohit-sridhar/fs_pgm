@@ -1,4 +1,5 @@
 #include "hmm.h"
+#include "hmm_sv_gaussian.h"
 
 #include <iostream>
 #include <fstream>
@@ -17,30 +18,28 @@
 /*
  * HMM Constructor. First, Checks validity of n_states (can't be 0 and must be a multiple of
  * len(labels)). Then sets states per label to the positive int states_per_label. Finally,
- * sets the reverse map (label -> index) from the forward map, label_vec (index -> label).
+ * sets the reverse map (label -> index) from the forward map, label_vec_ (index -> label).
  */
 HMM::HMM (
     size_t n_states,
     std::vector<std::string>& labels
-    // bool ignore_warnings
-) : n_states(n_states),
-    label_vec(labels),
-    // ignore_warnings(ignore_warnings),
-    emissions(n_states) {
+) : n_states_(n_states),
+    label_vec_(labels),
+    emissions_(n_states) {
     
-    if (n_states == 0) {
+    if (n_states_ == 0) {
         log_error() << "n_states must be > 0";
         throw std::invalid_argument("n_states must be > 0");
     }
     
-    if (n_states % label_vec.size() != 0) {
+    if (n_states_ % label_vec_.size() != 0) {
         log_error() << "The number of labels must divide n_states with no remainder";
         throw std::invalid_argument("The number of labels must divide n_states with no remainder");
     }
     
-    states_per_label = n_states / label_vec.size();
-    for (size_t i = 0; i < label_vec.size(); ++i) {
-        label_map[label_vec[i]] = i;
+    states_per_label_ = n_states_ / label_vec_.size();
+    for (size_t i = 0; i < label_vec_.size(); ++i) {
+        label_map_[label_vec_[i]] = i;
     }
 }
 
@@ -59,15 +58,15 @@ HMM::HMM (
  * algorithm as well. When gamma and xi are computed, the scalars
  * cancel so that parameter updates are unaffected.
  */
-void HMM::forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const {
-    alpha.col(0) = B.col(0).array() * start_priors.array();
+void HMM::forward_(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const {
+    alpha.col(0) = B.col(0).array() * start_priors_.array();
     
     // scale alpha
     c(0) = 1.0 / alpha.col(0).sum();
     alpha.col(0) *= c(0);
     
     for (size_t t = 1; t < alpha.cols(); ++t) {
-        auto prev = transp.transpose() * alpha.col(t - 1);
+        auto prev = transp_.transpose() * alpha.col(t - 1);
         alpha.col(t) = B.col(t).array() * prev.array();
         
         // scale alpha
@@ -87,14 +86,14 @@ void HMM::forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::Matri
  * emissions for the next state and the inductive prior from the next state.
  * We then scale that column of beta using c(t).
  */
-void HMM::backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const {
+void HMM::backward_(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const {
     size_t T = beta.cols() - 1;
-    beta.col(T) = c(T) * end_priors.array();
+    beta.col(T) = c(T) * end_priors_.array();
 
     for (size_t t = T - 1; t != SIZE_MAX; --t) {
         auto next = beta.col(t + 1).array() * B.col(t + 1).array();
         
-        beta.col(t) = transp * next.matrix();
+        beta.col(t) = transp_ * next.matrix();
         beta.col(t) *= c(t);
     }
 }
@@ -108,7 +107,7 @@ void HMM::backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::Matri
  * at a timestep t for that sequence (considering all state sequences passing
  * throuh that state).
  */
-void HMM::compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const {
+void HMM::compute_gamma_(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const {
     gamma = alpha.array() * beta.array();
     gamma.array().rowwise() /= gamma.colwise().sum().array();
 }
@@ -116,7 +115,7 @@ void HMM::compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, co
 /*
  * Compute xi over every timestep in the observation sequence.
  */
-void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const {
+void HMM::compute_xi_(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const {
     using namespace Eigen;
     
     size_t T = xi.dimension(0);
@@ -124,9 +123,9 @@ void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha,
     
     for(size_t t = 0; t < T; ++t) {
         auto trans_to = beta.col(t + 1).array() * B.col(t + 1).array();
-        auto trans_from = transp.array().colwise() * alpha.col(t).array();
+        auto trans_from = transp_.array().colwise() * alpha.col(t).array();
         
-        // TensorMap<Tensor<double, 2>> xi_t(&xi(0, 0, t), n_states, n_states);
+        // TensorMap<Tensor<double, 2>> xi_t(&xi(0, 0, t), n_states_, n_states_);
         MatrixXd xi_t = trans_from.array().rowwise() * trans_to.array().transpose();
         double total_sum = xi_t.sum();
         
@@ -134,7 +133,7 @@ void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha,
             xi_t /= total_sum;
         else {
             // Fallback strategy to protect the rest of the matrix math
-            xi_t.setConstant(1.0 / (n_states * n_states));
+            xi_t.setConstant(1.0 / (n_states_ * n_states_));
             num_lowsums++;
         }
         
@@ -155,14 +154,14 @@ void HMM::compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha,
 /*
  * update accumulators
  */
-void HMM::update_accumulators(
+void HMM::update_accumulators_(
     const Eigen::MatrixXd& gamma,
     const Eigen::Tensor<double, 3>& xi,
     const Eigen::VectorXd& obs,
-    HMMBaumWelchAccumulator& acc
+    HMMSVBaumWelchAccumulator& acc
 ) const {
     using namespace Eigen;
-
+    
     acc.start_priors += gamma.col(0);
     acc.end_priors += gamma.col(gamma.cols() - 1);
     
@@ -189,7 +188,7 @@ void HMM::load_from_config(fs::path config_file) {
     using namespace Eigen;
 
     log_info() << "Loading config file: " << config_file.filename();
-    std::ifstream file(config_file); 
+    std::ifstream file(config_file);
     
     if (!file.is_open()) {
         log_error() << "Error: Could not open file at " << config_file;
@@ -219,32 +218,32 @@ void HMM::load_from_config(fs::path config_file) {
             current_row_cols++;
         }
         
-        if (current_row_cols != n_states) {
-            log_error() << "Error. Config must have " << n_states << " cols.";
+        if (current_row_cols != n_states_) {
+            log_error() << "Error. Config must have " << n_states_ << " cols.";
             log_error() << "Could not load " << config_file;
             return;
         }
         num_rows++;
     }
-
-    if (num_rows - 2 != n_states) {
-        log_error() << "Error. Config must have " << n_states + 2 << " rows.";
+    
+    if (num_rows - 2 != n_states_) {
+        log_error() << "Error. Config must have " << n_states_ + 2 << " rows.";
         log_error() << "Could not load " << config_file;
         return;
     }
     
     // Map first row into start priors
     const double* start = flat_data.data();
-    start_priors = Map<const VectorXd>(start, n_states);
+    start_priors_ = Map<const VectorXd>(start, n_states_);
     
     // Map next row into end priors
-    start += n_states;
-    end_priors = Map<const VectorXd>(start, n_states);
+    start += n_states_;
+    end_priors_ = Map<const VectorXd>(start, n_states_);
     
-    // Map and copy the transp table
-    start += n_states;
+    // Map and copy the transp_ table
+    start += n_states_;
     using mmatrix = Map<const Matrix<double, Dynamic, Dynamic, RowMajor>>;
-    transp = mmatrix(start, n_states, n_states);
+    transp_ = mmatrix(start, n_states_, n_states_);
     
     log_info() << "Successfully loaded start priors, end priors and transp from: " << config_file.filename();
 }
@@ -261,7 +260,7 @@ void HMM::load_from_config(fs::path config_file) {
 void HMM::init_accumulate(
     const Eigen::VectorXd& obs,
     const std::vector<std::string>& labels,
-    HMMInitAccumulator& acc
+    HMMSVInitAccumulator& acc
 ) const {
     // TODO add this to all functions using Eigen
     using namespace Eigen;
@@ -269,7 +268,7 @@ void HMM::init_accumulate(
     // fpl is frames per label and fps is frames per state.
     // 1 label may correspond to a state or multiple.
     size_t fpl = obs.size() / labels.size();
-    size_t fps = obs.size() / n_states;
+    size_t fps = obs.size() / n_states_;
     
     if (fps <= HMM::MIN_FRAMES_PER_LABEL)
         std::invalid_argument("There are too few observations per label. Skipping this sequence.");
@@ -282,8 +281,8 @@ void HMM::init_accumulate(
         if (i == labels.size() - 1)
             end_obs = obs.size() - 1;
         
-        size_t start_state = label_map.at(labels[i]) * states_per_label;
-        size_t end_state = start_state + states_per_label - 1;
+        size_t start_state = label_map_.at(labels[i]) * states_per_label_;
+        size_t end_state = start_state + states_per_label_ - 1;
         
         Refd acc_means = acc.means(seq(start_state, end_state));
         Refd acc_std_devs = acc.std_devs(seq(start_state, end_state));
@@ -306,10 +305,10 @@ void HMM::init_accumulate(
  * Updates emissions mean and std dev params.
  */
 //TODO CHANGES BY SUBCLASS
-void HMM::init_summarize(HMMInitAccumulator& acc) {
+void HMM::init_summarize(HMMSVInitAccumulator& acc) {
     auto& acc_obs_count_dbl = acc.obs_count.cast<double>();
-    emissions.set_means(acc.means.array() / acc_obs_count_dbl.array());
-    emissions.set_std_devs((acc.std_devs.array() / acc_obs_count_dbl.array()).array().sqrt());
+    emissions_.set_means(acc.means.array() / acc_obs_count_dbl.array());
+    emissions_.set_std_devs((acc.std_devs.array() / acc_obs_count_dbl.array()).array().sqrt());
 }
 
 /*
@@ -318,27 +317,27 @@ void HMM::init_summarize(HMMInitAccumulator& acc) {
  */
 void HMM::baum_welch_accumulate(
     const Eigen::VectorXd& obs,
-    HMMBaumWelchAccumulator& acc
+    HMMSVBaumWelchAccumulator& acc
 ) const {
     using namespace Eigen;
     size_t T = obs.size();
     
-    MatrixXd alpha = MatrixXd::Zero(n_states, T);
-    MatrixXd beta = MatrixXd::Zero(n_states, T);
+    MatrixXd alpha = MatrixXd::Zero(n_states_, T);
+    MatrixXd beta = MatrixXd::Zero(n_states_, T);
     
-    MatrixXd B = emissions.pdf(obs);
+    MatrixXd B = emissions_.pdf(obs);
     
     VectorXd c = VectorXd::Zero(T);
-    forward(alpha, c, B);
-    backward(beta, c, B);
+    forward_(alpha, c, B);
+    backward_(beta, c, B);
     
-    MatrixXd gamma = MatrixXd::Zero(n_states, T);
-    compute_gamma(gamma, alpha, beta);
+    MatrixXd gamma = MatrixXd::Zero(n_states_, T);
+    compute_gamma_(gamma, alpha, beta);
     
-    Tensor<double, 3> xi(T - 1, n_states, n_states);
-    compute_xi(xi, alpha, beta, B);
+    Tensor<double, 3> xi(T - 1, n_states_, n_states_);
+    compute_xi_(xi, alpha, beta, B);
     
-    update_accumulators(gamma, xi, obs, acc);
+    update_accumulators_(gamma, xi, obs, acc);
 }
 
 /*
@@ -349,21 +348,30 @@ void HMM::baum_welch_accumulate(
  */
 //TODO CHANGES BY SUBCLASS
 void HMM::baum_welch_summarize(
-    HMMBaumWelchAccumulator& acc
+    HMMSVBaumWelchAccumulator& acc
 ) {
     using namespace Eigen;
     
-    start_priors = acc.start_priors / acc.start_priors.sum();
-    end_priors = acc.end_priors / acc.end_priors.sum();
+    start_priors_ = acc.start_priors / acc.start_priors.sum();
+    end_priors_ = acc.end_priors / acc.end_priors.sum();
     
     VectorXd transp_norm = (acc.gamma.array() - acc.end_priors.array()).cwiseMax(HMM::FLOOR_VAL);
-    transp = acc.xi.array().colwise() / transp_norm.array();
+    transp_ = acc.xi.array().colwise() / transp_norm.array();
     
-    emissions.set_means(acc.obs.array() / acc.gamma.array());
-    VectorXd variances = (acc.obs_sq.array() / acc.gamma.array()) - emissions.get_means().array().square();
+    emissions_.set_means(acc.obs.array() / acc.gamma.array());
+    VectorXd variances = (acc.obs_sq.array() / acc.gamma.array()) - emissions_.get_means().array().square();
     log_debug() << "variances \n" << variances.cwiseMax(HMM::FLOOR_VAL);
-    emissions.set_std_devs(variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt());
+    emissions_.set_std_devs(variances.cwiseMax(HMM::FLOOR_VAL).array().sqrt());
 }
+
+HMMSVInitAccumulator HMM::create_init_accumulator() const {
+    return HMMSVInitAccumulator(n_states_);
+};
+
+HMMSVBaumWelchAccumulator HMM::create_baum_welch_accumulator() const {
+    log_debug() << "n_states_: " << n_states_ << "\n";
+    return HMMSVBaumWelchAccumulator(n_states_);
+};
 
 // overload ostream for clean print
 std::ostream& operator<<(std::ostream& os, const HMM& hmm) {

@@ -26,14 +26,15 @@
 
 namespace fs = std::filesystem;
 
+struct HMMSVInitAccumulator;
+struct HMMSVBaumWelchAccumulator;
+
 // The accumulators below work for initialization and baum welch.
 // They accumulate (sums) of values in parallel and the HMM class
 // aggregates (averages, or keeps the sum) them after the threads
 // join. We keep these separate since each thread will work on its
 // own copy.
 struct HMMInitAccumulator {
-    Eigen::VectorXd means;
-    Eigen::VectorXd std_devs;
     Eigen::VectorXi obs_count;
     size_t n_states;
     
@@ -41,15 +42,11 @@ struct HMMInitAccumulator {
         clear();
     }
 
-    void clear() {
-        means.setZero(n_states);
-        std_devs.setZero(n_states);
+    virtual void clear() {
         obs_count.setZero(n_states);
     }
 
-    HMMInitAccumulator& operator+=(const HMMInitAccumulator& acc) {
-        means += acc.means;
-        std_devs += acc.std_devs;
+    virtual HMMInitAccumulator& operator+=(const HMMInitAccumulator& acc) {
         obs_count += acc.obs_count;
         return *this;
     }
@@ -61,9 +58,6 @@ struct HMMBaumWelchAccumulator {
     
     Eigen::VectorXd gamma;
     Eigen::MatrixXd xi;
-    
-    Eigen::VectorXd obs;
-    Eigen::VectorXd obs_sq;
     
     size_t n_states;
     
@@ -77,9 +71,6 @@ struct HMMBaumWelchAccumulator {
         
         gamma.setZero(n_states);
         xi.setZero(n_states, n_states);
-        
-        obs.setZero(n_states);
-        obs_sq.setZero(n_states);
     }
 
     HMMBaumWelchAccumulator& operator+=(const HMMBaumWelchAccumulator& acc) {
@@ -88,9 +79,6 @@ struct HMMBaumWelchAccumulator {
 
         gamma += acc.gamma;
         xi += acc.xi;
-
-        obs += acc.obs;
-        obs_sq += acc.obs_sq;
         
         return *this;
     }
@@ -123,8 +111,8 @@ public:
     // Finally, init_accumulate should be called to gather
     // flat start init accumulators into the emissions.
     // void init_reset_accumulators();
-    void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const;
-    void init_summarize(HMMInitAccumulator& acc);
+    void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMSVInitAccumulator& acc) const;
+    void init_summarize(HMMSVInitAccumulator& acc);
     // virtual void init_accumulate(const Eigen::VectorXd& obs, const std::vector<std::string>& labels, HMMInitAccumulator& acc) const = 0;
     // virtual void init_summarize(HMMInitAccumulator& acc) = 0;
     
@@ -132,43 +120,46 @@ public:
     // First, baum_welch_reset_accumulators should be called.
     // Then baum_welch across all obs.
     // Then baum_welch_update_params. Calling the three in sequence
-    // repeatedly forms multiple iterations of baum
-    // welch.
+    // repeatedly forms multiple iterations of baum welch.
     // void baum_welch_reset_accumulators();
-    void baum_welch_accumulate(const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;
-    void baum_welch_summarize(HMMBaumWelchAccumulator& acc);
+    void baum_welch_accumulate(const Eigen::VectorXd& obs, HMMSVBaumWelchAccumulator& acc) const;
+    void baum_welch_summarize(HMMSVBaumWelchAccumulator& acc);
     // virtual void baum_welch_summarize(HMMBaumWelchAccumulator& acc) = 0;
     
     // getters
-    size_t get_n_states() const { return n_states; };
-    const Eigen::VectorXd& get_start_priors() const { return start_priors; };
-    const Eigen::VectorXd& get_end_priors() const { return end_priors; };
-    const Eigen::MatrixXd& get_transp() const { return transp; };
-    const Gaussian& get_emissions() const { return emissions; };
-    const std::vector<std::string>& get_labels() const { return label_vec; };
+    size_t get_n_states() const { return n_states_; };
+    
+    const Eigen::VectorXd& get_start_priors() const { return start_priors_; };
+    const Eigen::VectorXd& get_end_priors() const { return end_priors_; };
+    
+    const Eigen::MatrixXd& get_transp() const { return transp_; };
+    const Gaussian& get_emissions() const { return emissions_; };
+    const std::vector<std::string>& get_labels() const { return label_vec_; };
+
+    HMMSVInitAccumulator create_init_accumulator() const;
+    HMMSVBaumWelchAccumulator create_baum_welch_accumulator() const;
 
 private:
-    size_t n_states;
-    size_t states_per_label;
-    bool ignore_warnings;
-
-    // label_vec is a vector of labels
-    // label_map maps labels in label_vec to indices in label_vec
-    std::vector<std::string> label_vec;
-    std::unordered_map<std::string, size_t> label_map;
+    size_t n_states_;
+    size_t states_per_label_;
     
-    Eigen::VectorXd start_priors;
-    Eigen::VectorXd end_priors;
-    Eigen::MatrixXd transp;
-    SingleDimensionalGaussian emissions;
+    // label_vec_ is a vector of labels
+    // label_map_ maps labels in label_vec_ to indices in label_vec_
+    std::vector<std::string> label_vec_;
+    std::unordered_map<std::string, size_t> label_map_;
     
-    void forward(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
-    void backward(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
+    Eigen::VectorXd start_priors_;
+    Eigen::VectorXd end_priors_;
+    Eigen::MatrixXd transp_;
+    SingleDimensionalGaussian emissions_;
     
-    void compute_gamma(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const;
-    void compute_xi(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const;
+    void forward_(Eigen::MatrixXd& alpha, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
+    void backward_(Eigen::MatrixXd& beta, Eigen::VectorXd& c, const Eigen::MatrixXd& B) const;
     
-    void update_accumulators(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMBaumWelchAccumulator& acc) const;    
+    void compute_gamma_(Eigen::MatrixXd& gamma, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta) const;
+    void compute_xi_(Eigen::Tensor<double, 3>& xi, const Eigen::MatrixXd& alpha, const Eigen::MatrixXd& beta, const Eigen::MatrixXd& B) const;
+    
+    void update_accumulators_(const Eigen::MatrixXd& gamma, const Eigen::Tensor<double, 3>& xi, const Eigen::VectorXd& obs, HMMSVBaumWelchAccumulator& acc) const;    
 };
 
 // class HMMSingleGaussian : public HMM {

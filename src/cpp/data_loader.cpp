@@ -16,9 +16,9 @@
 
 namespace fs = std::filesystem;
 
-DataLoader::DataLoader(const fs::path& load_dir) : load_dir(load_dir) {
-    num_files = count_data_files(); 
-    load_sequences_and_labels();
+DataLoader::DataLoader(const fs::path& load_dir) : load_dir_(load_dir) {
+    num_files_ = count_data_files_(); 
+    load_sequences_and_labels_();
 }
 
 /************************************************** PRIVATE FXN **************************************************/
@@ -38,26 +38,26 @@ bool DataLoader::is_data_file(const fs::path& fpath) const {
     return fs::is_regular_file(fpath) && fpath.extension() == datafile_extension;
 }
 
-/* count_data_files
+/* count_data_files_
  *  counts directories in path and returns
  *  if not a directory or doesn't exist returns 0
  *
  */
-size_t DataLoader::count_data_files() const {
-    if (!fs::exists(load_dir) || !fs::is_directory(load_dir)) return 0;
+size_t DataLoader::count_data_files_() const {
+    if (!fs::exists(load_dir_) || !fs::is_directory(load_dir_)) return 0;
 
-    return std::count_if(fs::directory_iterator(load_dir), fs::directory_iterator{},
+    return std::count_if(fs::directory_iterator(load_dir_), fs::directory_iterator{},
         [this](const auto& file) {
             return is_data_file(file.path());
         });
 }
 
-/* load_label_file()
+/* load_label_file_()
  *  loads a label file by reading it (taking a path to it
  *  as an arg), copying the lines into a vector and returning
  *  the vector.
  */
-std::vector<std::string> DataLoader::load_label_file(const fs::path& fpath) const {
+std::vector<std::string> DataLoader::load_label_file_(const fs::path& fpath) const {
     log_debug() << "Loading Label File: " << fpath.filename();
     std::ifstream file(fpath); 
     
@@ -89,12 +89,12 @@ std::vector<std::string> DataLoader::load_label_file(const fs::path& fpath) cons
 }
 
 /*
- * load_sequence_file()
+ * load_sequence_file_()
  *  Loads a sequence file by reading it. It is expected to have one frame per row
  *  and m feature columns per frame. The data is mapped into an Eigen::MatrixXd and
  *  returned.
  */
-Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) const {
+Eigen::MatrixXd DataLoader::load_sequence_file_(const fs::path& fpath) const {
     log_debug() << "Loading Sequence File: " << fpath.filename();
     std::ifstream file(fpath); 
     
@@ -148,17 +148,17 @@ Eigen::MatrixXd DataLoader::load_sequence_file(const fs::path& fpath) const {
 }
 
 
-/* load_sequences_and_labels
+/* load_sequences_and_labels_
  *  Iterates over data and labels and loads them from file. 
  *  Adds them to the member variables holding the data. If
  *  either the label or data file is missing, neither is loaded
  *  to the instance.
  */
-void DataLoader::load_sequences_and_labels() {
+void DataLoader::load_sequences_and_labels_() {
     try {
-        if (fs::exists(load_dir) && fs::is_directory(load_dir)) {
+        if (fs::exists(load_dir_) && fs::is_directory(load_dir_)) {
             // Loop through all entries in the directory
-            for (const auto& file : fs::directory_iterator(load_dir)) {
+            for (const auto& file : fs::directory_iterator(load_dir_)) {
                 fs::path data_path = file.path();
                 fs::path label_path = data_path;
                 fs::path fname = data_path;
@@ -168,8 +168,8 @@ void DataLoader::load_sequences_and_labels() {
                 
                 // Check if it is a regular file (skips folders/symlinks if desired)
                 if (is_data_file(data_path) && is_label_file(label_path)) {
-                    std::vector<std::string> seq_labels = load_label_file(label_path);
-                    Eigen::MatrixXd sequence = load_sequence_file(data_path);
+                    std::vector<std::string> seq_labels = load_label_file_(label_path);
+                    Eigen::MatrixXd sequence = load_sequence_file_(data_path);
                     
                     labels[fname] = seq_labels;
                     sequences[fname] = sequence;

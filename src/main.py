@@ -381,7 +381,7 @@ def gen_plots():
 
 # test out multivariate gaussian modeling
 def test_mv_gaussian():
-    g = MultidimensionalGaussian(args.n_states, 3, False)
+    g = MultiDimensionalGaussian(args.n_states, 3, False)
 
     # covs = np.array(elems).reshape((args.n_states, 3, 3)) / max(elems)
     # logger.info(covs)

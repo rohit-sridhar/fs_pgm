@@ -15,12 +15,12 @@
  * The constructor saves a load directory
  *
  * stream_sequences is a generator function that
- * allows the caller to loop over the files in load_dir
- * under the assumption that each file in load_dir contains
+ * allows the caller to loop over the files in load_dir_
+ * under the assumption that each file in load_dir_ contains
  * a sequence of data points.
  * 
- * load_sequence_file loads a single file for a single iteration of
- * load_dir.
+ * load_sequence_file_ loads a single file for a single iteration of
+ * load_dir_.
  */
 
 namespace fs = std::filesystem;
@@ -54,20 +54,20 @@ public:
     std::generator<Sequence&&> stream_sequences() const;
     std::generator<SequenceAndLabel&&> stream_sequences_and_labels() const;
     
-    size_t get_num_files() const { return num_files; }
-    const fs::path& get_load_dir() const { return load_dir; };
+    size_t get_num_files() const { return num_files_; }
+    const fs::path& get_load_dir() const { return load_dir_; };
 private:
-    fs::path load_dir;
-    size_t num_files;
+    fs::path load_dir_;
+    size_t num_files_;
     
     std::unordered_map<fs::path, Eigen::MatrixXd> sequences;
     std::unordered_map<fs::path, std::vector<std::string>> labels;
     
-    size_t count_data_files() const;
-    void load_sequences_and_labels();
+    size_t count_data_files_() const;
+    void load_sequences_and_labels_();
     
-    std::vector<std::string> load_label_file(const fs::path& fpath) const;
-    Eigen::MatrixXd load_sequence_file(const fs::path& fpath) const;
+    std::vector<std::string> load_label_file_(const fs::path& fpath) const;
+    Eigen::MatrixXd load_sequence_file_(const fs::path& fpath) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const DataLoader& data_loader);

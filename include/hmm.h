@@ -38,6 +38,7 @@ struct HMMInitAccumulator {
     Eigen::VectorXi obs_count;
     size_t n_states;
     
+    virtual ~HMMInitAccumulator() = default;
     HMMInitAccumulator(size_t n_states) : n_states(n_states) {
         clear();
     }
@@ -61,6 +62,7 @@ struct HMMBaumWelchAccumulator {
     
     size_t n_states;
     
+    virtual ~HMMBaumWelchAccumulator() = default;
     HMMBaumWelchAccumulator(size_t n_states) : n_states(n_states) {
         clear();
     }
